@@ -7,6 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchMetValues, saveWorkoutSession } from '../../services/workoutService';
 import { fetchReadinessScore } from '../../services/progressService';
 import MuscleActivationOverlay from './MuscleActivationOverlay';
+import { predictMultiplier } from '../../ml/calorieModel';
+import { predictFormScore } from '../../ml/formModel';
 
 const LANDMARKS = {
   LEFT_SHOULDER: 11,
@@ -393,7 +395,7 @@ const LiveWorkoutTracker = () => {
   );
 
   const processReps = useCallback(
-    (landmarks, canvasWidth, canvasHeight) => {
+    async (landmarks, canvasWidth, canvasHeight) => {
       const type = exerciseTypeRef.current;
       const config = EXERCISE_CONFIG[type];
 
@@ -453,7 +455,15 @@ const LiveWorkoutTracker = () => {
 
           const depthScore = scoreDepth(minAngleRef.current, config.bottomAngle, config.idealBottom);
           const alignScore = scoreAlignment(minAlignmentRef.current, config.alignmentIdeal);
-          const repScore = Math.round(depthScore * 0.6 + alignScore * 0.4);
+          
+          let repScore;
+          try {
+            const mlScore = await predictFormScore(landmarks);
+            repScore = (mlScore !== null) ? mlScore : Math.round(depthScore * 0.6 + alignScore * 0.4);
+          } catch (err) {
+            console.error('Error executing form score model inference:', err);
+            repScore = Math.round(depthScore * 0.6 + alignScore * 0.4);
+          }
 
           setRepScores((prev) => [...prev, repScore]);
           setLastRepScore(repScore);
@@ -602,8 +612,15 @@ const LiveWorkoutTracker = () => {
             const scores = formScoresRef.current;
             const avgFormScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 70;
 
-            const multiplier = liveMultiplier({ repsPerMinute, avgFormScore });
-            setLiveCalories(Math.round(baseCalories * multiplier * 100) / 100);
+            predictMultiplier({ weightKg, repsPerMinute, avgFormScore, met, durationHours })
+              .then((multiplier) => {
+                setLiveCalories(Math.round(baseCalories * multiplier * 100) / 100);
+              })
+              .catch((err) => {
+                console.error('Error predicting calorie multiplier:', err);
+                const multiplier = liveMultiplier({ repsPerMinute, avgFormScore });
+                setLiveCalories(Math.round(baseCalories * multiplier * 100) / 100);
+              });
           }
 
           return nextSeconds;
