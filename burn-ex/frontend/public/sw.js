@@ -33,11 +33,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for ML Models (tfhub, mediapipe, unpkg)
+  // Cache-first for ML Models (tfhub, mediapipe, unpkg, and local models)
   if (
     request.url.includes('tfhub.dev') ||
     request.url.includes('cdn.jsdelivr.net') ||
-    request.url.includes('unpkg.com')
+    request.url.includes('unpkg.com') ||
+    request.url.includes('/models/')
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {

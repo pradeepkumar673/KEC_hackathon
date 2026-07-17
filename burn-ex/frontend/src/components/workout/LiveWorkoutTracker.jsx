@@ -7,8 +7,13 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchMetValues, saveWorkoutSession } from '../../services/workoutService';
 import { fetchReadinessScore } from '../../services/progressService';
 import MuscleActivationOverlay from './MuscleActivationOverlay';
-import { predictMultiplier } from '../../ml/calorieModel';
-import { predictFormScore } from '../../ml/formModel';
+import { predictMultiplier, loadCalorieModel } from '../../ml/calorieModel';
+import { predictFormScore, loadFormModel } from '../../ml/formModel';
+
+
+// ============================================================
+// CONFIGURATION
+// ============================================================
 
 const LANDMARKS = {
   LEFT_SHOULDER: 11,
@@ -25,6 +30,7 @@ const LANDMARKS = {
   RIGHT_ANKLE: 28,
 };
 
+// Exercise configuration with angle thresholds and muscle mapping
 const EXERCISE_CONFIG = {
   pushup: {
     label: 'Push-up',
@@ -56,65 +62,65 @@ const EXERCISE_CONFIG = {
     primaryMuscles: ['quadriceps', 'glutes'],
     secondaryMuscles: ['hamstrings', 'calves'],
   },
+  jumping_jack: {
+    label: 'Jumping Jack',
+    primary: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_ANKLE],
+    alignment: [LANDMARKS.LEFT_SHOULDER, LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE],
+    topAngle: 160,
+    bottomAngle: 120,
+    idealBottom: 100,
+    alignmentIdeal: 160,
+    depthJoint: LANDMARKS.LEFT_KNEE,
+    alignmentJoint: LANDMARKS.LEFT_HIP,
+    depthMsg: 'Bend your knees more',
+    alignmentMsg: 'Keep your back straight',
+    primaryMuscles: ['quadriceps', 'shoulders'],
+    secondaryMuscles: ['calves', 'abdominals'],
+  },
 };
 
-const FALLBACK_MET = { pushup: 8.0, squat: 5.0 };
+const FALLBACK_MET = { pushup: 8.0, squat: 5.0, jumping_jack: 7.0 };
 
-// ── Fatigue detection config ────────────────────────────────────────────
-const FATIGUE_WINDOW = 5;        // reps averaged for "current pace"
-const BASELINE_REPS = 3;         // first N reps define the "fresh" baseline
-const FATIGUE_EMA_ALPHA = 0.35;  // smoothing factor (higher = reacts faster)
+// Fatigue detection
+const FATIGUE_WINDOW = 5;
+const BASELINE_REPS = 3;
+const FATIGUE_EMA_ALPHA = 0.35;
 
-const movingAverage = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+// Auto exercise recognition
+const RECOGNITION_WINDOW = 15;
+const RECOGNITION_AGREEMENT = 10;
 
-// ── Auto exercise recognition config ────────────────────────────────────
-const RECOGNITION_WINDOW = 15;    // frames to vote over
-const RECOGNITION_AGREEMENT = 10; // votes needed to commit a switch
-
-// ── Injury risk config ──────────────────────────────────────────────────
-const VALGUS_THRESHOLD = 0.035;      // normalized x-deviation of knee from hip-ankle line
-const ASYMMETRY_THRESHOLD_DEG = 12;  // left/right angle difference that flags compensation
+// Injury risk
+const VALGUS_THRESHOLD = 0.035;
+const ASYMMETRY_THRESHOLD_DEG = 12;
 const RISK_EMA_ALPHA = 0.3;
 
 const RISK_CONFIG = {
   pushup: {
     mirrorPrimary: [LANDMARKS.RIGHT_SHOULDER, LANDMARKS.RIGHT_ELBOW, LANDMARKS.RIGHT_WRIST],
-    strainThreshold: 155,   // stricter than the coaching alignmentIdeal — flags real strain, not just poor form
+    strainThreshold: 155,
     strainMessage: 'Hips sagging — brace your core to protect your lower back.',
     hyperextensionAngle: 178,
   },
   squat: {
     mirrorPrimary: [LANDMARKS.RIGHT_HIP, LANDMARKS.RIGHT_KNEE, LANDMARKS.RIGHT_ANKLE],
-    hipKneeAnkle: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_ANKLE],
     strainThreshold: 130,
     strainMessage: 'Excessive forward lean — keep your chest tall.',
     hyperextensionAngle: 178,
   },
+  jumping_jack: {
+    mirrorPrimary: [LANDMARKS.RIGHT_HIP, LANDMARKS.RIGHT_KNEE, LANDMARKS.RIGHT_ANKLE],
+    strainThreshold: 140,
+    strainMessage: 'Land softly — protect your knees.',
+    hyperextensionAngle: 178,
+  },
 };
 
-const detectKneeValgus = (hip, knee, ankle) => {
-  if (!hip || !knee || !ankle || ankle.y === hip.y) return false;
-  const t = (knee.y - hip.y) / (ankle.y - hip.y);
-  const expectedKneeX = hip.x + (ankle.x - hip.x) * t;
-  return knee.x - expectedKneeX < -VALGUS_THRESHOLD; // knee tracking medial to the hip-ankle line
-};
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
 
-const classifyPose = (landmarks) => {
-  const shoulder = landmarks[LANDMARKS.LEFT_SHOULDER];
-  const hip = landmarks[LANDMARKS.LEFT_HIP];
-  const wrist = landmarks[LANDMARKS.LEFT_WRIST];
-  if (!shoulder || !hip || !wrist) return null;
-
-  // Torso angle from vertical: ~0° standing, ~90° horizontal (plank)
-  const dx = Math.abs(hip.x - shoulder.x);
-  const dy = Math.abs(hip.y - shoulder.y);
-  const torsoAngleFromVertical = (Math.atan2(dx, dy) * 180) / Math.PI;
-  const wristNearShoulderHeight = Math.abs(wrist.y - shoulder.y) < 0.15;
-
-  if (torsoAngleFromVertical > 55 && wristNearShoulderHeight) return 'pushup';
-  if (torsoAngleFromVertical < 35) return 'squat';
-  return null; // ambiguous frame — don't vote
-};
+const movingAverage = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
 
 const formatTime = (totalSeconds) => {
   const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -144,8 +150,6 @@ const scoreAlignment = (minAlignment, idealAngle) => {
   return Math.max(0, Math.min(100, Math.round(score)));
 };
 
-// Normalizes wherever the current joint angle sits between "rest" (topAngle)
-// and "peak contraction" (idealBottom) into a 0–1 activation level.
 const computeActivation = (primaryAngle, config) => {
   const range = config.topAngle - config.idealBottom;
   if (range <= 0 || primaryAngle == null) return 0;
@@ -153,12 +157,35 @@ const computeActivation = (primaryAngle, config) => {
   return Math.round(((config.topAngle - clamped) / range) * 100) / 100;
 };
 
-// Client-side mirror of the backend regression multiplier, so the live
-// counter tracks the same curve the server will use at save time.
-const liveMultiplier = ({ repsPerMinute = 0, avgFormScore = 70 }) => {
-  const formDeviation = avgFormScore - 70;
-  let multiplier = 1.0 + 0.01 * repsPerMinute + 0.002 * formDeviation;
-  return Math.min(1.3, Math.max(0.8, multiplier));
+const detectKneeValgus = (hip, knee, ankle) => {
+  if (!hip || !knee || !ankle || ankle.y === hip.y) return false;
+  const t = (knee.y - hip.y) / (ankle.y - hip.y);
+  const expectedKneeX = hip.x + (ankle.x - hip.x) * t;
+  return knee.x - expectedKneeX < -VALGUS_THRESHOLD;
+};
+
+const classifyPose = (landmarks) => {
+  const shoulder = landmarks[LANDMARKS.LEFT_SHOULDER];
+  const hip = landmarks[LANDMARKS.LEFT_HIP];
+  const wrist = landmarks[LANDMARKS.LEFT_WRIST];
+  const knee = landmarks[LANDMARKS.LEFT_KNEE];
+  const ankle = landmarks[LANDMARKS.LEFT_ANKLE];
+  if (!shoulder || !hip || !wrist || !knee || !ankle) return null;
+
+  const dx = Math.abs(hip.x - shoulder.x);
+  const dy = Math.abs(hip.y - shoulder.y);
+  const torsoAngleFromVertical = (Math.atan2(dx, dy) * 180) / Math.PI;
+  const wristNearShoulder = Math.abs(wrist.y - shoulder.y) < 0.15;
+
+  // Check for jumping jack: arms raised and legs spread
+  const leftArmRaised = landmarks[LANDMARKS.LEFT_WRIST]?.y < landmarks[LANDMARKS.LEFT_SHOULDER]?.y;
+  const rightArmRaised = landmarks[LANDMARKS.RIGHT_WRIST]?.y < landmarks[LANDMARKS.RIGHT_SHOULDER]?.y;
+  const legsSpread = Math.abs(landmarks[LANDMARKS.LEFT_HIP]?.x - landmarks[LANDMARKS.RIGHT_HIP]?.x) > 0.15;
+
+  if (leftArmRaised && rightArmRaised && legsSpread) return 'jumping_jack';
+  if (torsoAngleFromVertical > 55 && wristNearShoulder) return 'pushup';
+  if (torsoAngleFromVertical < 35) return 'squat';
+  return null;
 };
 
 const drawArrow = (ctx, x, y, direction, color) => {
@@ -181,42 +208,46 @@ const drawArrow = (ctx, x, y, direction, color) => {
   ctx.restore();
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+
 const LiveWorkoutTracker = () => {
   const { user } = useAuth();
 
+  // Refs
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const poseRef = useRef(null);
   const cameraRef = useRef(null);
   const timerIntervalRef = useRef(null);
 
+  // State refs for closure
   const repStateRef = useRef('up');
   const exerciseTypeRef = useRef('pushup');
   const minAngleRef = useRef(Infinity);
   const minAlignmentRef = useRef(180);
-  const cvReadyRef = useRef(false);
   const lastSpokenRef = useRef({ text: '', time: 0 });
-  const repsRef = useRef(0); // mirrors `reps` state for use inside interval closures
+  const repsRef = useRef(0);
   const formScoresRef = useRef([]);
+  const lastLandmarksRef = useRef(null);
 
   // Fatigue refs
-  const repTimestampsRef = useRef([]);     // ms timestamp of each completed rep
-  const repDurationsRef = useRef([]);      // rolling window, seconds-per-rep
+  const repTimestampsRef = useRef([]);
+  const repDurationsRef = useRef([]);
   const baselineDurationRef = useRef(null);
   const fatigueEmaRef = useRef(0);
 
   // Muscle activation refs
   const muscleActivationEmaRef = useRef(0);
-  const [muscleActivation, setMuscleActivation] = useState(0);
 
   // Auto recognition refs
   const poseClassBufferRef = useRef([]);
 
+  // Injury risk refs
   const riskEmaRef = useRef(0);
-  const [injuryRisk, setInjuryRisk] = useState(0);          // 0–100
-  const [riskLevel, setRiskLevel] = useState('low');         // low | moderate | high
-  const [riskFactors, setRiskFactors] = useState([]);
 
+  // --- State ---
   const [exerciseType, setExerciseType] = useState('pushup');
   const [reps, setReps] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
@@ -230,51 +261,68 @@ const LiveWorkoutTracker = () => {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [metValues, setMetValues] = useState(FALLBACK_MET);
   const [liveCalories, setLiveCalories] = useState(0);
-  const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
+  const [saveState, setSaveState] = useState('idle');
   const [savedSession, setSavedSession] = useState(null);
-
-  // Fatigue states
-  const [fatigueScore, setFatigueScore] = useState(0);       // 0–100
-  const [fatigueLevel, setFatigueLevel] = useState('fresh'); // fresh | moderate | high
-
-  // Auto recognition states
+  const [muscleActivation, setMuscleActivation] = useState(0);
+  const [fatigueScore, setFatigueScore] = useState(0);
+  const [fatigueLevel, setFatigueLevel] = useState('fresh');
   const [autoDetectEnabled, setAutoDetectEnabled] = useState(false);
   const [detectedExercise, setDetectedExercise] = useState(null);
-
   const [readiness, setReadiness] = useState(null);
+  const [injuryRisk, setInjuryRisk] = useState(0);
+  const [riskLevel, setRiskLevel] = useState('low');
+  const [riskFactors, setRiskFactors] = useState([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsReady, setModelsReady] = useState(false);
 
+  // Computed
   const overallScore = useMemo(() => {
     if (repScores.length === 0) return null;
     const sum = repScores.reduce((acc, s) => acc + s, 0);
     return Math.round(sum / repScores.length);
   }, [repScores]);
 
-  useEffect(() => {
-    repsRef.current = reps;
-  }, [reps]);
+  // Sync refs with state
+  useEffect(() => { repsRef.current = reps; }, [reps]);
+  useEffect(() => { formScoresRef.current = repScores; }, [repScores]);
 
+  // --- Load ML models on mount ---
   useEffect(() => {
-    formScoresRef.current = repScores;
-  }, [repScores]);
+    const loadModels = async () => {
+      setModelsLoading(true);
+      try {
+        await Promise.all([
+          loadCalorieModel(),
+          loadFormModel()
+        ]);
+        setModelsReady(true);
+        console.log('✅ All ML models loaded');
+      } catch (e) {
+        console.warn('⚠️ Some models failed to load, using fallbacks', e);
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+    loadModels();
+  }, []);
 
-  // Voice cues helper
+  // --- Voice feedback ---
   const speak = useCallback(
     (text, { priority = false, cooldownMs = 3000 } = {}) => {
       if (!voiceEnabled || !window.speechSynthesis) return;
       const now = Date.now();
-      if (!priority && text === lastSpokenRef.current.text && now - lastSpokenRef.current.time < cooldownMs) {
-        return;
-      }
+      if (!priority && text === lastSpokenRef.current.text && now - lastSpokenRef.current.time < cooldownMs) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.05;
+      utterance.pitch = 1.1;
       window.speechSynthesis.speak(utterance);
       lastSpokenRef.current = { text, time: now };
     },
     [voiceEnabled]
   );
 
-  // Fatigue detection function
+  // --- Fatigue detection ---
   const registerRepCompletion = useCallback(() => {
     const now = Date.now();
     const timestamps = repTimestampsRef.current;
@@ -286,14 +334,13 @@ const LiveWorkoutTracker = () => {
     durations.push(durationSec);
     if (durations.length > FATIGUE_WINDOW) durations.shift();
 
-    // Baseline pace = average of the first few reps, assumed "fresh"
     if (baselineDurationRef.current === null && timestamps.length - 1 >= BASELINE_REPS) {
       baselineDurationRef.current = movingAverage(durations.slice(0, BASELINE_REPS));
     }
     if (!baselineDurationRef.current) return;
 
     const currentSMA = movingAverage(durations);
-    const slowdownRatio = currentSMA / baselineDurationRef.current; // >1 = slower than baseline
+    const slowdownRatio = currentSMA / baselineDurationRef.current;
     const rawFatigue = Math.max(0, Math.min(100, Math.round((slowdownRatio - 1) * 150)));
 
     fatigueEmaRef.current = FATIGUE_EMA_ALPHA * rawFatigue + (1 - FATIGUE_EMA_ALPHA) * fatigueEmaRef.current;
@@ -309,31 +356,27 @@ const LiveWorkoutTracker = () => {
     });
   }, [speak]);
 
-  // Exercise switch and reset logic
+  // --- Exercise switch reset ---
   useEffect(() => {
     exerciseTypeRef.current = exerciseType;
     repStateRef.current = 'up';
     minAngleRef.current = Infinity;
     minAlignmentRef.current = 180;
-
-    // Reset fatigue tracking for the new exercise
     repTimestampsRef.current = [];
     repDurationsRef.current = [];
     baselineDurationRef.current = null;
     fatigueEmaRef.current = 0;
     setFatigueScore(0);
     setFatigueLevel('fresh');
-
     muscleActivationEmaRef.current = 0;
     setMuscleActivation(0);
-
     riskEmaRef.current = 0;
     setInjuryRisk(0);
     setRiskLevel('low');
     setRiskFactors([]);
   }, [exerciseType]);
 
-  // Fetch MET values once on mount
+  // --- Fetch data on mount ---
   useEffect(() => {
     fetchMetValues()
       .then((data) => setMetValues({ ...FALLBACK_MET, ...data }))
@@ -346,10 +389,12 @@ const LiveWorkoutTracker = () => {
       .catch(() => setReadiness(null));
   }, []);
 
+  // --- Angle calculation ---
   const calculateAngle = useCallback((a, b, c) => {
     return angleFallback(a, b, c);
   }, []);
 
+  // --- Injury risk computation ---
   const computeInjuryRisk = useCallback(
     (landmarks, type, primaryAngle, alignmentAngle) => {
       const config = RISK_CONFIG[type];
@@ -358,7 +403,6 @@ const LiveWorkoutTracker = () => {
       let rawRisk = 0;
       const factors = [];
 
-      // Bilateral asymmetry — tracked side vs. mirror side
       const [mA, mB, mC] = config.mirrorPrimary;
       const mirrorAngle = calculateAngle(landmarks[mA], landmarks[mB], landmarks[mC]);
       if (mirrorAngle !== null && primaryAngle !== null) {
@@ -368,7 +412,6 @@ const LiveWorkoutTracker = () => {
         }
       }
 
-      // Squat-specific: knee valgus
       if (config.hipKneeAnkle) {
         const [hA, kA, aA] = config.hipKneeAnkle;
         if (detectKneeValgus(landmarks[hA], landmarks[kA], landmarks[aA])) {
@@ -377,13 +420,11 @@ const LiveWorkoutTracker = () => {
         }
       }
 
-      // Spinal load — sagging hips (pushup) or forward lean (squat)
       if (alignmentAngle !== null && alignmentAngle < config.strainThreshold) {
         rawRisk += 25;
         factors.push({ type: 'spinal_load', message: config.strainMessage, severity: 'high' });
       }
 
-      // Hyperextension at lockout
       if (primaryAngle !== null && primaryAngle > config.hyperextensionAngle) {
         rawRisk += 10;
         factors.push({ type: 'hyperextension', message: "Don't lock the joint out hard at the top.", severity: 'low' });
@@ -394,10 +435,12 @@ const LiveWorkoutTracker = () => {
     [calculateAngle]
   );
 
+  // --- Process reps (core logic) ---
   const processReps = useCallback(
     async (landmarks, canvasWidth, canvasHeight) => {
       const type = exerciseTypeRef.current;
       const config = EXERCISE_CONFIG[type];
+      if (!config) return;
 
       const [pA, pB, pC] = config.primary;
       const primaryAngle = calculateAngle(landmarks[pA], landmarks[pB], landmarks[pC]);
@@ -408,13 +451,15 @@ const LiveWorkoutTracker = () => {
 
       setCurrentAngle(Math.round(primaryAngle));
 
+      // Muscle activation
       const rawActivation = computeActivation(primaryAngle, config);
       muscleActivationEmaRef.current = 0.4 * rawActivation + 0.6 * muscleActivationEmaRef.current;
       setMuscleActivation(muscleActivationEmaRef.current);
 
+      // Injury risk (only when descending)
       if (repStateRef.current === 'down') {
         const { rawRisk, factors } = computeInjuryRisk(landmarks, type, primaryAngle, alignmentAngle);
-        const combinedRisk = Math.min(100, rawRisk + fatigueScore * 0.3); // fatigue elevates injury risk
+        const combinedRisk = Math.min(100, rawRisk + fatigueScore * 0.3);
         riskEmaRef.current = RISK_EMA_ALPHA * combinedRisk + (1 - RISK_EMA_ALPHA) * riskEmaRef.current;
         const smoothed = Math.round(riskEmaRef.current);
         setInjuryRisk(smoothed);
@@ -429,8 +474,8 @@ const LiveWorkoutTracker = () => {
         });
       }
 
+      // Form issues
       let issue = null;
-
       if (repStateRef.current === 'down') {
         minAngleRef.current = Math.min(minAngleRef.current, primaryAngle);
         if (alignmentAngle !== null) {
@@ -449,19 +494,20 @@ const LiveWorkoutTracker = () => {
 
       setFormIssue(issue);
 
+      // Rep counting
       if (primaryAngle > config.topAngle) {
         if (repStateRef.current === 'down') {
           repStateRef.current = 'up';
 
           const depthScore = scoreDepth(minAngleRef.current, config.bottomAngle, config.idealBottom);
           const alignScore = scoreAlignment(minAlignmentRef.current, config.alignmentIdeal);
-          
+
+          // Use ML model for form score with fallback
           let repScore;
           try {
-            const mlScore = await predictFormScore(landmarks);
-            repScore = (mlScore !== null) ? mlScore : Math.round(depthScore * 0.6 + alignScore * 0.4);
-          } catch (err) {
-            console.error('Error executing form score model inference:', err);
+            const mlScore = await predictFormScore(landmarks, { depthScore, alignScore });
+            repScore = mlScore !== null ? mlScore : Math.round(depthScore * 0.6 + alignScore * 0.4);
+          } catch {
             repScore = Math.round(depthScore * 0.6 + alignScore * 0.4);
           }
 
@@ -473,7 +519,7 @@ const LiveWorkoutTracker = () => {
             return next;
           });
           registerRepCompletion();
-          setFeedback(repScore >= 80 ? 'Great form!' : 'Good rep — check your form tips.');
+          setFeedback(repScore >= 80 ? 'Great form!' : repScore >= 60 ? 'Good rep — check your form tips.' : 'Form needs work — focus on technique.');
 
           minAngleRef.current = Infinity;
           minAlignmentRef.current = 180;
@@ -488,11 +534,14 @@ const LiveWorkoutTracker = () => {
         repStateRef.current = 'down';
         setFeedback(`Now push back up.`);
       }
+
+      // Store landmarks for auto-detection
+      lastLandmarksRef.current = landmarks;
     },
     [calculateAngle, speak, registerRepCompletion, computeInjuryRisk, fatigueScore]
   );
 
-  // Auto Exercise Recognition callback
+  // --- Auto detection ---
   const runAutoDetection = useCallback(
     (landmarks) => {
       if (!autoDetectEnabled) return;
@@ -508,7 +557,6 @@ const LiveWorkoutTracker = () => {
       const [topGuess, topCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
       setDetectedExercise(topGuess || null);
 
-      // Only switch when confident, and between reps so we don't corrupt an in-progress rep
       if (
         topGuess &&
         topCount >= RECOGNITION_AGREEMENT &&
@@ -524,11 +572,13 @@ const LiveWorkoutTracker = () => {
     [autoDetectEnabled, speak]
   );
 
+  // --- Speak form issues ---
   useEffect(() => {
     if (!isTracking || !formIssue) return;
     speak(formIssue.message);
   }, [formIssue?.type, isTracking, speak]);
 
+  // --- MediaPipe onResults callback ---
   const onResults = useCallback(
     (results) => {
       const canvas = canvasRef.current;
@@ -551,6 +601,7 @@ const LiveWorkoutTracker = () => {
 
       ctx.restore();
 
+      // Draw form issue arrow
       if (formIssue) {
         drawArrow(ctx, formIssue.x, formIssue.y, formIssue.direction, '#EF4444');
         ctx.save();
@@ -569,8 +620,11 @@ const LiveWorkoutTracker = () => {
     [processReps, formIssue, runAutoDetection]
   );
 
+  // --- Initialize MediaPipe Pose ---
   useEffect(() => {
-    const pose = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
+    const pose = new Pose({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
     pose.setOptions({
       modelComplexity: 1,
       smoothLandmarks: true,
@@ -580,6 +634,7 @@ const LiveWorkoutTracker = () => {
     });
     pose.onResults(onResults);
     poseRef.current = pose;
+
     return () => {
       pose.close();
       poseRef.current = null;
@@ -594,20 +649,18 @@ const LiveWorkoutTracker = () => {
     };
   }, [onResults]);
 
-  // Timer + live calorie counter (same tick)
+  // --- Timer + calorie counter ---
   useEffect(() => {
     if (isTracking) {
-      timerIntervalRef.current = setInterval(() => {
-        setSeconds((prevSeconds) => {
-          const nextSeconds = prevSeconds + 1;
-
+      timerIntervalRef.current = setInterval(async () => {
+        setSeconds((prev) => {
+          const next = prev + 1;
           const weightKg = user?.weight;
           if (weightKg) {
             const met = metValues[exerciseTypeRef.current] ?? FALLBACK_MET[exerciseTypeRef.current] ?? 5.0;
-            const durationHours = nextSeconds / 3600;
+            const durationHours = next / 3600;
             const baseCalories = met * weightKg * durationHours;
-
-            const durationMinutes = nextSeconds / 60;
+            const durationMinutes = next / 60;
             const repsPerMinute = durationMinutes > 0 ? repsRef.current / durationMinutes : 0;
             const scores = formScoresRef.current;
             const avgFormScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 70;
@@ -616,14 +669,12 @@ const LiveWorkoutTracker = () => {
               .then((multiplier) => {
                 setLiveCalories(Math.round(baseCalories * multiplier * 100) / 100);
               })
-              .catch((err) => {
-                console.error('Error predicting calorie multiplier:', err);
-                const multiplier = liveMultiplier({ repsPerMinute, avgFormScore });
-                setLiveCalories(Math.round(baseCalories * multiplier * 100) / 100);
+              .catch(() => {
+                const multiplier = 1.0 + 0.01 * repsPerMinute + 0.002 * (avgFormScore - 70);
+                setLiveCalories(Math.round(baseCalories * Math.min(1.3, Math.max(0.8, multiplier)) * 100) / 100);
               });
           }
-
-          return nextSeconds;
+          return next;
         });
       }, 1000);
     } else {
@@ -632,6 +683,7 @@ const LiveWorkoutTracker = () => {
     return () => clearInterval(timerIntervalRef.current);
   }, [isTracking, user, metValues]);
 
+  // --- Start tracking ---
   const handleStart = async () => {
     setCameraError('');
     setFeedback('Get in position...');
@@ -649,7 +701,6 @@ const LiveWorkoutTracker = () => {
         width: 640,
         height: 480,
       });
-
       await camera.start();
       cameraRef.current = camera;
       setIsTracking(true);
@@ -659,6 +710,7 @@ const LiveWorkoutTracker = () => {
     }
   };
 
+  // --- Stop tracking ---
   const handleStop = async () => {
     if (cameraRef.current) {
       cameraRef.current.stop();
@@ -669,7 +721,6 @@ const LiveWorkoutTracker = () => {
     setFormIssue(null);
     setFeedback('Session stopped.');
 
-    // Persist the session if there's anything meaningful to save
     if (repsRef.current > 0 && seconds > 0) {
       setSaveState('saving');
       try {
@@ -681,12 +732,14 @@ const LiveWorkoutTracker = () => {
         });
         setSavedSession(saved);
         setSaveState('saved');
-      } catch (err) {
+        speak('Session saved successfully!', { priority: true });
+      } catch {
         setSaveState('error');
       }
     }
   };
 
+  // --- Reset ---
   const handleReset = () => {
     setReps(0);
     setSeconds(0);
@@ -700,24 +753,21 @@ const LiveWorkoutTracker = () => {
     minAngleRef.current = Infinity;
     minAlignmentRef.current = 180;
     setFeedback('Counters reset.');
-
-    // Reset fatigue
     repTimestampsRef.current = [];
     repDurationsRef.current = [];
     baselineDurationRef.current = null;
     fatigueEmaRef.current = 0;
     setFatigueScore(0);
     setFatigueLevel('fresh');
-
     muscleActivationEmaRef.current = 0;
     setMuscleActivation(0);
-
     riskEmaRef.current = 0;
     setInjuryRisk(0);
     setRiskLevel('low');
     setRiskFactors([]);
   };
 
+  // --- Cleanup ---
   useEffect(() => {
     return () => {
       if (cameraRef.current) cameraRef.current.stop();
@@ -725,11 +775,25 @@ const LiveWorkoutTracker = () => {
     };
   }, []);
 
+  // --- Render ---
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 text-white">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Live Workout Tracker</h1>
         <div className="flex items-center space-x-3">
+          {modelsLoading && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse inline-block"></span>
+              Loading AI...
+            </span>
+          )}
+          {modelsReady && (
+            <span className="text-xs text-green-400 flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full inline-block"></span>
+              AI Ready
+            </span>
+          )}
           <button
             onClick={() => setAutoDetectEnabled((v) => !v)}
             className={`text-xs px-3 py-1.5 rounded-full border ${
@@ -751,23 +815,20 @@ const LiveWorkoutTracker = () => {
         </div>
       </div>
 
+      {/* Readiness */}
       {readiness && (
-        <div
-          className={`rounded-xl border p-4 mb-6 ${
-            readiness.level === 'high'
-              ? 'bg-green-500/10 border-green-500/30'
-              : readiness.level === 'moderate'
-              ? 'bg-yellow-500/10 border-yellow-500/30'
-              : 'bg-red-500/10 border-red-500/30'
-          }`}
-        >
+        <div className={`rounded-xl border p-4 mb-6 ${
+          readiness.level === 'high'
+            ? 'bg-green-500/10 border-green-500/30'
+            : readiness.level === 'moderate'
+            ? 'bg-yellow-500/10 border-yellow-500/30'
+            : 'bg-red-500/10 border-red-500/30'
+        }`}>
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm font-semibold">Today's Readiness</span>
-            <span
-              className={`text-lg font-bold ${
-                readiness.level === 'high' ? 'text-green-400' : readiness.level === 'moderate' ? 'text-yellow-400' : 'text-red-400'
-              }`}
-            >
+            <span className={`text-lg font-bold ${
+              readiness.level === 'high' ? 'text-green-400' : readiness.level === 'moderate' ? 'text-yellow-400' : 'text-red-400'
+            }`}>
               {readiness.score}/100
             </span>
           </div>
@@ -775,7 +836,8 @@ const LiveWorkoutTracker = () => {
         </div>
       )}
 
-      <div className="flex gap-3 mb-4">
+      {/* Exercise selector */}
+      <div className="flex flex-wrap gap-3 mb-4">
         {Object.entries(EXERCISE_CONFIG).map(([key, cfg]) => (
           <button
             key={key}
@@ -790,19 +852,21 @@ const LiveWorkoutTracker = () => {
         ))}
       </div>
 
+      {/* Errors */}
       {!user?.weight && (
         <p className="text-xs text-yellow-500 mb-4">
-          Your profile is missing weight — calorie estimates will be unavailable until it's set.
+          ⚠️ Your profile is missing weight — calorie estimates will be unavailable until it's set.
         </p>
       )}
       {cameraError && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg p-3 mb-4">{cameraError}</div>
       )}
 
+      {/* Camera + Muscle Activation */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
-        <div className="relative w-full rounded-xl overflow-hidden bg-black border border-gray-700">
+        <div className="relative w-full rounded-xl overflow-hidden bg-black border border-gray-700 aspect-video">
           <video ref={videoRef} className="hidden" playsInline />
-          <canvas ref={canvasRef} className="w-full h-auto block" />
+          <canvas ref={canvasRef} className="w-full h-full block" />
           {!isTracking && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/60">
               <p className="text-gray-300 text-sm">Camera feed will appear here</p>
@@ -812,11 +876,11 @@ const LiveWorkoutTracker = () => {
 
         <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4 flex flex-col items-center">
           <p className="text-xs text-gray-400 mb-2 self-start">
-            {EXERCISE_CONFIG[exerciseType].label} — muscle activation
+            {EXERCISE_CONFIG[exerciseType]?.label || 'Exercise'} — muscle activation
           </p>
           <MuscleActivationOverlay
-            primaryMuscles={EXERCISE_CONFIG[exerciseType].primaryMuscles}
-            secondaryMuscles={EXERCISE_CONFIG[exerciseType].secondaryMuscles}
+            primaryMuscles={EXERCISE_CONFIG[exerciseType]?.primaryMuscles || []}
+            secondaryMuscles={EXERCISE_CONFIG[exerciseType]?.secondaryMuscles || []}
             activation={isTracking ? muscleActivation : 0}
           />
           <div className="flex gap-4 mt-2 text-xs text-gray-400">
@@ -830,6 +894,7 @@ const LiveWorkoutTracker = () => {
         </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-orange-500">{reps}</div>
@@ -853,57 +918,59 @@ const LiveWorkoutTracker = () => {
         </div>
       </div>
 
+      {/* Fatigue + Injury Risk */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
-          <div
-            className={`text-3xl font-bold ${
-              fatigueLevel === 'high' ? 'text-red-400' : fatigueLevel === 'moderate' ? 'text-yellow-400' : 'text-green-400'
-            }`}
-          >
+          <div className={`text-3xl font-bold ${
+            fatigueLevel === 'high' ? 'text-red-400' : fatigueLevel === 'moderate' ? 'text-yellow-400' : 'text-green-400'
+          }`}>
             {fatigueScore}%
           </div>
           <div className="text-xs text-gray-400 mt-1">Fatigue</div>
         </div>
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
-          <div
-            className={`text-3xl font-bold ${
-              riskLevel === 'high' ? 'text-red-400' : riskLevel === 'moderate' ? 'text-yellow-400' : 'text-green-400'
-            }`}
-          >
+          <div className={`text-3xl font-bold ${
+            riskLevel === 'high' ? 'text-red-400' : riskLevel === 'moderate' ? 'text-yellow-400' : 'text-green-400'
+          }`}>
             {injuryRisk}%
           </div>
           <div className="text-xs text-gray-400 mt-1">Injury Risk</div>
         </div>
       </div>
 
+      {/* Risk factors */}
       {riskFactors.length > 0 && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-6 space-y-1">
           {riskFactors.map((f) => (
-            <p key={f.type} className="text-xs text-red-300">⚠ {f.message}</p>
+            <p key={f.type} className="text-xs text-red-300">⚠️ {f.message}</p>
           ))}
         </div>
       )}
 
+      {/* Last rep score */}
       {lastRepScore !== null && (
         <p className="text-sm text-center text-gray-400 mb-2">Last rep score: {lastRepScore}/100</p>
       )}
 
-      <p className="text-sm text-gray-400 mb-4 text-center">{feedback}</p>
+      {/* Feedback */}
+      <p className="text-sm text-gray-400 mb-4 text-center min-h-[20px]">{feedback}</p>
 
+      {/* Save state */}
       {saveState === 'saving' && (
         <p className="text-sm text-center text-gray-400 mb-4">Saving session...</p>
       )}
       {saveState === 'saved' && savedSession && (
         <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg p-3 mb-4 text-center">
-          Session saved — {savedSession.calories} kcal recorded to your history.
+          ✅ Session saved — {savedSession.calories} kcal recorded to your history.
         </div>
       )}
       {saveState === 'error' && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg p-3 mb-4 text-center">
-          Couldn't save this session. Your reps are still shown above — try Stop again if you're online.
+          ❌ Couldn't save this session. Your reps are still shown above — try Stop again if you're online.
         </div>
       )}
 
+      {/* Controls */}
       <div className="flex gap-3 justify-center">
         {!isTracking ? (
           <button onClick={handleStart} className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition">
