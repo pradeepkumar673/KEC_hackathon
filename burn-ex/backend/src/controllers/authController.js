@@ -37,7 +37,12 @@ export const registerUser = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      weight: user.weight,
+      height: user.height,
+      age: user.age,
+      gender: user.gender,
       goal: user.goal,
+      activityLevel: user.activityLevel,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -64,7 +69,12 @@ export const loginUser = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      weight: user.weight,
+      height: user.height,
+      age: user.age,
+      gender: user.gender,
       goal: user.goal,
+      activityLevel: user.activityLevel,
       token: generateToken(user._id),
     });
   } catch (error) {
