@@ -226,7 +226,6 @@ const LiveWorkoutTracker = () => {
   const [repScores, setRepScores] = useState([]);
   const [lastRepScore, setLastRepScore] = useState(null);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [cvReady, setCvReady] = useState(false);
   const [metValues, setMetValues] = useState(FALLBACK_MET);
   const [liveCalories, setLiveCalories] = useState(0);
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
@@ -345,50 +344,8 @@ const LiveWorkoutTracker = () => {
       .catch(() => setReadiness(null));
   }, []);
 
-  useEffect(() => {
-    if (window.cv && window.cv.norm) {
-      cvReadyRef.current = true;
-      setCvReady(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://docs.opencv.org/4.x/opencv.js';
-    script.async = true;
-    script.onload = () => {
-      const check = setInterval(() => {
-        if (window.cv && window.cv.norm) {
-          cvReadyRef.current = true;
-          setCvReady(true);
-          clearInterval(check);
-        }
-      }, 200);
-    };
-    document.body.appendChild(script);
-  }, []);
-
   const calculateAngle = useCallback((a, b, c) => {
-    if (!a || !b || !c) return null;
-    if (!cvReadyRef.current || !window.cv) return angleFallback(a, b, c);
-
-    const cv = window.cv;
-    const baX = a.x - b.x;
-    const baY = a.y - b.y;
-    const bcX = c.x - b.x;
-    const bcY = c.y - b.y;
-
-    const vecBA = cv.matFromArray(2, 1, cv.CV_64F, [baX, baY]);
-    const vecBC = cv.matFromArray(2, 1, cv.CV_64F, [bcX, bcY]);
-    const magBA = cv.norm(vecBA, cv.NORM_L2);
-    const magBC = cv.norm(vecBC, cv.NORM_L2);
-    vecBA.delete();
-    vecBC.delete();
-
-    if (magBA === 0 || magBC === 0) return null;
-
-    const dot = baX * bcX + baY * bcY;
-    let cosAngle = dot / (magBA * magBC);
-    cosAngle = Math.min(1, Math.max(-1, cosAngle));
-    return (Math.acos(cosAngle) * 180) / Math.PI;
+    return angleFallback(a, b, c);
   }, []);
 
   const computeInjuryRisk = useCallback(

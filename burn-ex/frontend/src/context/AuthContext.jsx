@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       try {
-        const { data } = await api.get('/auth/me');
+        const data = await api.get('/api/auth/me');
         setUser(data);
       } catch (error) {
         localStorage.removeItem('burnex_token');
@@ -31,14 +31,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const register = async (formData) => {
-    const { data } = await api.post('/auth/register', formData);
+    const data = await api.post('/api/auth/register', formData);
     localStorage.setItem('burnex_token', data.token);
     setUser(data);
     return data;
   };
 
   const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
+    const data = await api.post('/api/auth/login', { email, password });
     localStorage.setItem('burnex_token', data.token);
     setUser(data);
     return data;
