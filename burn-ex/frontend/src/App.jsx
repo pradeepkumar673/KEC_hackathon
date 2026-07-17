@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import LiveWorkoutTracker from './components/workout/LiveWorkoutTracker';
 import Nutrition from './pages/Nutrition';
+import ProgressDashboard from './pages/ProgressDashboard';
 
 function App() {
   return (
@@ -41,6 +42,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Nutrition />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/progress"
+            element={
+              <ProtectedRoute>
+                <ProgressDashboard />
               </ProtectedRoute>
             }
           />
