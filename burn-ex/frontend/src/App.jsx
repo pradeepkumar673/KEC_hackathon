@@ -5,6 +5,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import LiveWorkoutTracker from './components/workout/LiveWorkoutTracker';
 
 function App() {
   return (
@@ -21,6 +22,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/live-tracker"
+            element={
+              <ProtectedRoute>
+                <LiveWorkoutTracker />
               </ProtectedRoute>
             }
           />
