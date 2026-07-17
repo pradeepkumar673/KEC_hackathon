@@ -78,6 +78,21 @@ async function main() {
   const sugg = await axios.get(`${BASE}/api/nutrition/suggestions`, { headers });
   log('NUTRITION SUGGESTIONS', sugg.data);
 
+  // Tiny 1x1 JPEG for HF smoke test (may return generic labels)
+  const tinyJpeg =
+    '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAA//EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z';
+
+  try {
+    const photo = await axios.post(
+      `${BASE}/api/ai/nutrition/analyze-photo`,
+      { imageBase64: tinyJpeg },
+      { headers, validateStatus: () => true }
+    );
+    log('FOOD PHOTO (HF)', { status: photo.status, ...photo.data });
+  } catch (err) {
+    log('FOOD PHOTO (HF)', { error: err.message, note: 'Frontend will use MobileNet fallback' });
+  }
+
   console.log('\n✅ All AI endpoint checks completed.');
 }
 

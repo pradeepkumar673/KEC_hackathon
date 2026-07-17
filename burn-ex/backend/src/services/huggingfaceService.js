@@ -68,11 +68,13 @@ export const classifyFoodImage = async (imageBase64) => {
   try {
     response = await postOnce();
   } catch (err) {
-    if (err.response?.status === 503) {
+    const status = err.response?.status;
+    if (status === 503 || status === 504) {
       await new Promise((r) => setTimeout(r, 5000));
       response = await postOnce();
     } else {
-      throw err;
+      const detail = err.response?.data?.error || err.response?.data?.message || err.message;
+      throw new Error(`HF inference failed (${status || 'network'}): ${detail}`);
     }
   }
 

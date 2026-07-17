@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed:met": "node src/seed/seedMetValues.js"
+    "seed:met": "node src/seed/seedMetValues.js",
+    "test:ai": "node scripts/test-ai.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",

@@ -147,7 +147,7 @@ const Nutrition = () => {
             </div>
             <FoodPhotoUpload onEstimate={handlePhotoEstimate} />
             <p className="text-xs text-gray-500">
-              Pick/capture a food photo. Burn-Ex uses lightweight client-side vision heuristics to recognize the meal and auto-populate calorie bounds.
+              Upload a food photo — Hugging Face food model via server (private), with MobileNet browser fallback if offline.
             </p>
           </div>
 

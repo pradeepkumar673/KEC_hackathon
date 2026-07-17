@@ -137,7 +137,7 @@ const FoodPhotoUpload = ({ onEstimate }) => {
             >
               <span className="text-sm capitalize">{p.label}</span>
               <span className="text-xs text-gray-400">
-                {Math.round(p.confidence * 100)}% match · ~{p.calories} kcal
+                {Math.round((p.confidence <= 1 ? p.confidence * 100 : p.confidence))}% match · ~{p.calories} kcal
               </span>
             </button>
           ))}

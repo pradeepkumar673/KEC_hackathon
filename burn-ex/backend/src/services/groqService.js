@@ -5,10 +5,11 @@ import axios from 'axios';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const FAST_MODEL = process.env.GROQ_FAST_MODEL || 'llama-3.1-8b-instant';
 
 export const isGroqConfigured = () => Boolean(process.env.GROQ_API_KEY);
 
-const chat = async (messages, { maxTokens = 512, temperature = 0.6 } = {}) => {
+const chat = async (messages, { maxTokens = 512, temperature = 0.6, model = DEFAULT_MODEL } = {}) => {
   if (!isGroqConfigured()) {
     throw new Error('GROQ_API_KEY is not configured');
   }
@@ -16,7 +17,7 @@ const chat = async (messages, { maxTokens = 512, temperature = 0.6 } = {}) => {
   const { data } = await axios.post(
     GROQ_URL,
     {
-      model: DEFAULT_MODEL,
+      model,
       messages,
       max_tokens: maxTokens,
       temperature,
@@ -125,7 +126,7 @@ export const generateFormTip = async (context) => {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      { maxTokens: 60, temperature: 0.4 }
+      { maxTokens: 60, temperature: 0.4, model: FAST_MODEL }
     );
     return tip.split('\n')[0].trim();
   } catch (err) {

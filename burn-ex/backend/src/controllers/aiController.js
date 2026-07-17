@@ -33,12 +33,24 @@ export const analyzeFoodPhoto = asyncHandler(async (req, res) => {
   }
 
   if (!isHfConfigured()) {
-    res.status(503);
-    throw new Error('Food vision service not configured (HF_API_TOKEN)');
+    return res.status(503).json({
+      message: 'Food vision service not configured (HF_API_TOKEN)',
+      fallback: true,
+      predictions: [],
+    });
   }
 
-  const predictions = await classifyFoodImage(imageBase64);
-  res.json({ source: 'huggingface', predictions });
+  try {
+    const predictions = await classifyFoodImage(imageBase64);
+    res.json({ source: 'huggingface', predictions });
+  } catch (err) {
+    console.warn('HF food vision failed:', err.response?.data || err.message);
+    res.status(502).json({
+      message: 'Food vision temporarily unavailable — client fallback will be used',
+      fallback: true,
+      predictions: [],
+    });
+  }
 });
 
 // GET /api/ai/nutrition/suggestions — Groq-powered (falls back handled in nutrition route)

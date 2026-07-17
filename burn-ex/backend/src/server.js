@@ -46,7 +46,15 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Stop the other process or set PORT in .env`);
+    process.exit(1);
+  }
+  throw err;
+});
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Rejection:', err.message);
