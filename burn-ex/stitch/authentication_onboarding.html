@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Burn-Ex | Authentication</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #fcdbd6;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .primary-gradient {
+            background: linear-gradient(135deg, #ff5545 0%, #c0000a 100%);
+        }
+
+        .primary-glow {
+            box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+        }
+
+        .glass-panel {
+            background: rgba(22, 22, 22, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        }
+
+        input:focus {
+            outline: none;
+            border-bottom-color: #ff5545 !material;
+            box-shadow: 0 4px 12px -4px rgba(255, 85, 69, 0.2);
+        }
+
+        .step-transition {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hidden-step {
+            display: none;
+            opacity: 0;
+            transform: translateX(20px);
+        }
+
+        .active-step {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Material Symbols weight mapping */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* Custom Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #2C2C2E;
+            border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #ff5545;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(255, 85, 69, 0.5);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#c0000a",
+                      "primary-fixed-dim": "#ffb4aa",
+                      "outline": "#ad8883",
+                      "on-secondary-fixed-variant": "#46464b",
+                      "surface-container-lowest": "#190a08",
+                      "on-secondary": "#2f3034",
+                      "error": "#ffb4ab",
+                      "on-tertiary": "#003545",
+                      "secondary-container": "#46464b",
+                      "inverse-surface": "#fcdbd6",
+                      "surface-container-high": "#392522",
+                      "on-background": "#fcdbd6",
+                      "on-primary-container": "#5c0002",
+                      "background": "#1f0f0d",
+                      "on-error": "#690005",
+                      "surface-container-highest": "#44302d",
+                      "on-tertiary-fixed-variant": "#004d63",
+                      "surface-container": "#2d1b18",
+                      "secondary-fixed-dim": "#c6c6cb",
+                      "on-tertiary-container": "#002e3c",
+                      "surface-variant": "#44302d",
+                      "tertiary": "#68d3fc",
+                      "secondary": "#c6c6cb",
+                      "surface-container-low": "#291715",
+                      "surface": "#1f0f0d",
+                      "on-primary-fixed": "#410001",
+                      "on-surface-variant": "#e7bdb7",
+                      "on-secondary-fixed": "#1a1b1f",
+                      "tertiary-fixed-dim": "#68d3fc",
+                      "primary-container": "#ff5545",
+                      "tertiary-fixed": "#bbe9ff",
+                      "on-surface": "#fcdbd6",
+                      "surface-dim": "#1f0f0d",
+                      "surface-bright": "#493431",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-container": "#1d9cc3",
+                      "primary-fixed": "#ffdad5",
+                      "on-primary-fixed-variant": "#930005",
+                      "secondary-fixed": "#e3e2e7",
+                      "primary": "#ffb4aa",
+                      "on-secondary-container": "#b5b4ba",
+                      "on-primary": "#690003",
+                      "surface-tint": "#ffb4aa",
+                      "inverse-on-surface": "#402b29",
+                      "outline-variant": "#5d3f3b",
+                      "on-tertiary-fixed": "#001f29",
+                      "error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "base": "8px",
+                      "xl": "80px",
+                      "sm": "12px",
+                      "md": "24px",
+                      "lg": "48px",
+                      "xs": "4px",
+                      "container-max": "1280px",
+                      "gutter": "24px"
+              },
+              "fontFamily": {
+                      "stats-num": ["Montserrat"],
+                      "body-md": ["Inter"],
+                      "display-lg": ["Montserrat"],
+                      "headline-lg": ["Montserrat"],
+                      "headline-md": ["Montserrat"],
+                      "label-bold": ["Inter"],
+                      "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "stats-num": ["24px", {"lineHeight": "1", "fontWeight": "900"}],
+                      "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "900"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "800"}],
+                      "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                      "label-bold": ["14px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface overflow-hidden h-screen">
+<main class="flex h-full w-full">
+<!-- Left Panel: Visual & Tagline -->
+<section class="hidden lg:flex lg:w-1/2 relative flex-col justify-end p-lg overflow-hidden bg-black">
+<div class="absolute inset-0 z-0">
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent z-10"></div>
+<div class="absolute inset-0 bg-black/40 z-10"></div>
+<div class="w-full h-full bg-cover bg-center" data-alt="An elite athlete in a cinematic, low-key lighting setup. Their silhouette is sharp and defined against a dark, tech-infused gym background. Faint glowing red-orange bio-metric lines trace their muscles. The image has a high-performance, premium athletic aesthetic with deep blacks and vibrant orange light accents, suggesting power and precision." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCXvGjHKeAl0z2Xc008lB4--2WMfeAUtF_4lZyT5ESBTUaCGZM1WcTDF-b8Rt06UHcEl0XzWR8f_R8v2Vkfm7yPrdIIjmKTnYxY33o3dXlWhMfiivPtFVY2dvAzerrSnsyDU-4K1QqJGlna3o6lEk2h4zDh1QJDJ4EwrQ40LvnOX0pa2AoV3zRkslxJEXhho_IsNXVbWuMJBaDW8ahrhaUlOQp0f2cx7jX58qRfCenGnRHzjCbo__v9')"></div>
+</div>
+<div class="relative z-20 max-w-xl">
+<div class="flex items-center gap-2 mb-md">
+<span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<h1 class="font-display-lg text-display-lg text-primary tracking-tighter uppercase">Burn-Ex</h1>
+</div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-xs leading-none">MASTER YOUR MACHINE.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-md">
+                    Elite performance tracking powered by biometric intelligence. Join the ranks of the digitally optimized.
+                </p>
+</div>
+</section>
+<!-- Right Panel: Auth Portal -->
+<section class="w-full lg:w-1/2 flex flex-col justify-center items-center p-md bg-surface-container-low relative">
+<!-- Background Decoration -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+<div class="w-full max-w-md">
+<!-- Header Actions -->
+<div class="flex justify-between items-center mb-lg">
+<div class="lg:hidden flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<span class="font-headline-md text-headline-md text-primary tracking-tighter">BURN-EX</span>
+</div>
+<div class="flex bg-surface-container-highest p-1 rounded-lg">
+<button class="px-6 py-2 text-label-bold font-label-bold rounded-lg transition-all bg-primary-container text-on-primary-container shadow-lg" id="toggle-login">Login</button>
+<button class="px-6 py-2 text-label-bold font-label-bold rounded-lg transition-all text-on-surface-variant hover:text-on-surface" id="toggle-register">Register</button>
+</div>
+</div>
+<!-- Auth Forms Container -->
+<div class="relative overflow-hidden">
+<!-- Login Form -->
+<form class="space-y-md transition-all duration-500" id="login-form">
+<div class="space-y-xs">
+<h3 class="font-headline-lg text-headline-lg text-on-surface">Welcome Back</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Access your performance dashboard</p>
+</div>
+<div class="space-y-sm">
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Email Address</label>
+<input class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md" placeholder="athlete@burn-ex.com" type="email"/>
+</div>
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Password</label>
+<input class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<label class="flex items-center gap-2 cursor-pointer">
+<input class="w-4 h-4 rounded border-outline-variant bg-surface text-primary focus:ring-primary/20" type="checkbox"/>
+<span class="text-xs font-label-bold text-on-surface-variant">Remember Me</span>
+</label>
+<a class="text-xs font-label-bold text-primary hover:underline" href="#">Forgot Performance Key?</a>
+</div>
+<button class="w-full py-4 primary-gradient text-on-primary font-headline-md text-headline-md rounded-lg primary-glow active:scale-95 transition-transform" type="submit">
+                            INITIALIZE SESSION
+                        </button>
+<div class="flex items-center gap-4 py-4">
+<div class="h-px flex-1 bg-outline-variant"></div>
+<span class="text-xs font-label-bold text-outline">SECURE AUTH</span>
+<div class="h-px flex-1 bg-outline-variant"></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center gap-2 py-3 rounded-lg border border-outline-variant hover:bg-surface-variant transition-colors" type="button">
+<span class="material-symbols-outlined text-xl">google</span>
+<span class="text-xs font-label-bold">Google</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-3 rounded-lg border border-outline-variant hover:bg-surface-variant transition-colors" type="button">
+<span class="material-symbols-outlined text-xl">apps</span>
+<span class="text-xs font-label-bold">Apple</span>
+</button>
+</div>
+</form>
+<!-- Registration Multi-step Form -->
+<form class="hidden space-y-md transition-all duration-500" id="register-form">
+<div class="space-y-xs">
+<h3 class="font-headline-lg text-headline-lg text-on-surface">Join the Elite</h3>
+<div class="flex items-center gap-2">
+<div class="h-1.5 w-8 rounded-full bg-primary" id="reg-dot-1"></div>
+<div class="h-1.5 w-8 rounded-full bg-surface-container-highest" id="reg-dot-2"></div>
+<div class="h-1.5 w-8 rounded-full bg-surface-container-highest" id="reg-dot-3"></div>
+</div>
+</div>
+<!-- Step 1: Account -->
+<div class="step-transition active-step space-y-md" id="step-1">
+<div class="space-y-sm">
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Email Address</label>
+<input class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md" placeholder="new.athlete@burn-ex.com" type="email"/>
+</div>
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Password</label>
+<input class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md" placeholder="••••••••" type="password"/>
+</div>
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Confirm Password</label>
+<input class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<button class="w-full py-4 primary-gradient text-on-primary font-headline-md text-headline-md rounded-lg primary-glow" onclick="nextStep(2)" type="button">
+                                PROCEED TO BODY STATS
+                            </button>
+</div>
+<!-- Step 2: Body Stats -->
+<div class="step-transition hidden-step space-y-md" id="step-2">
+<div class="grid grid-cols-2 gap-sm">
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Weight (kg)</label>
+<input class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md" placeholder="75" type="number"/>
+</div>
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Height (cm)</label>
+<input class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md" placeholder="180" type="number"/>
+</div>
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Age</label>
+<input class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md" placeholder="25" type="number"/>
+</div>
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Gender</label>
+<select class="w-full bg-surface border-0 border-b-2 border-outline-variant py-4 px-4 text-on-surface focus:border-primary transition-colors font-body-md appearance-none">
+<option>Male</option>
+<option>Female</option>
+<option>Non-binary</option>
+</select>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-1/3 py-4 border border-outline-variant text-on-surface font-headline-md text-headline-md rounded-lg" onclick="nextStep(1)" type="button">BACK</button>
+<button class="w-2/3 py-4 primary-gradient text-on-primary font-headline-md text-headline-md rounded-lg primary-glow" onclick="nextStep(3)" type="button">DEFINE GOALS</button>
+</div>
+</div>
+<!-- Step 3: Goals & Activity -->
+<div class="step-transition hidden-step space-y-md" id="step-3">
+<div class="space-y-sm">
+<div class="relative">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest absolute -top-2 left-2 bg-surface px-1">Primary Objective</label>
+<div class="grid grid-cols-3 gap-2 mt-2">
+<label class="cursor-pointer">
+<input checked="" class="sr-only peer" name="goal" type="radio"/>
+<div class="p-3 text-center border border-outline-variant rounded peer-checked:bg-primary/20 peer-checked:border-primary transition-all">
+<span class="text-xs font-label-bold">SHRED</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="sr-only peer" name="goal" type="radio"/>
+<div class="p-3 text-center border border-outline-variant rounded peer-checked:bg-primary/20 peer-checked:border-primary transition-all">
+<span class="text-xs font-label-bold">BUILD</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="sr-only peer" name="goal" type="radio"/>
+<div class="p-3 text-center border border-outline-variant rounded peer-checked:bg-primary/20 peer-checked:border-primary transition-all">
+<span class="text-xs font-label-bold">MAINTAIN</span>
+</div>
+</label>
+</div>
+</div>
+<div class="space-y-4 pt-4">
+<div class="flex justify-between items-center">
+<label class="text-xs font-label-bold text-outline uppercase tracking-widest">Activity Level</label>
+<span class="text-primary font-stats-num text-stats-num" id="activity-label">MODERATE</span>
+</div>
+<input class="w-full" max="5" min="1" oninput="updateActivity(this.value)" type="range" value="3"/>
+<div class="flex justify-between text-[10px] text-outline font-label-bold">
+<span>SEDENTARY</span>
+<span>ACTIVE</span>
+<span>ATHLETE</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-1/3 py-4 border border-outline-variant text-on-surface font-headline-md text-headline-md rounded-lg" onclick="nextStep(2)" type="button">BACK</button>
+<button class="w-2/3 py-4 primary-gradient text-on-primary font-headline-md text-headline-md rounded-lg primary-glow" type="submit">FINALIZE SETUP</button>
+</div>
+</div>
+</form>
+</div>
+<!-- Footer Text -->
+<p class="mt-lg text-center text-xs font-body-md text-on-surface-variant max-w-xs mx-auto">
+                    By accessing Burn-Ex, you agree to our <a class="text-primary underline" href="#">Encrypted Data Policy</a> and <a class="text-primary underline" href="#">Biometric Terms</a>.
+                </p>
+</div>
+</section>
+</main>
+<script>
+        const loginBtn = document.getElementById('toggle-login');
+        const registerBtn = document.getElementById('toggle-register');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+
+        // Toggle Login/Register
+        loginBtn.addEventListener('click', () => {
+            loginForm.classList.remove('hidden');
+            registerForm.classList.add('hidden');
+            loginBtn.classList.add('bg-primary-container', 'text-on-primary-container', 'shadow-lg');
+            loginBtn.classList.remove('text-on-surface-variant');
+            registerBtn.classList.add('text-on-surface-variant');
+            registerBtn.classList.remove('bg-primary-container', 'text-on-primary-container', 'shadow-lg');
+        });
+
+        registerBtn.addEventListener('click', () => {
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+            registerBtn.classList.add('bg-primary-container', 'text-on-primary-container', 'shadow-lg');
+            registerBtn.classList.remove('text-on-surface-variant');
+            loginBtn.classList.add('text-on-surface-variant');
+            loginBtn.classList.remove('bg-primary-container', 'text-on-primary-container', 'shadow-lg');
+        });
+
+        // Registration Steps Logic
+        function nextStep(step) {
+            const steps = [1, 2, 3];
+            steps.forEach(s => {
+                const stepEl = document.getElementById(`step-${s}`);
+                const dotEl = document.getElementById(`reg-dot-${s}`);
+                
+                if (s === step) {
+                    stepEl.classList.remove('hidden-step');
+                    stepEl.classList.add('active-step');
+                    dotEl.classList.remove('bg-surface-container-highest');
+                    dotEl.classList.add('bg-primary');
+                } else {
+                    stepEl.classList.add('hidden-step');
+                    stepEl.classList.remove('active-step');
+                    if (s > step) {
+                        dotEl.classList.add('bg-surface-container-highest');
+                        dotEl.classList.remove('bg-primary');
+                    }
+                }
+            });
+        }
+
+        // Activity Slider Update
+        function updateActivity(val) {
+            const labels = ["SEDENTARY", "LIGHT", "MODERATE", "ACTIVE", "EXTREME"];
+            document.getElementById('activity-label').innerText = labels[val-1];
+        }
+
+        // Lightweight cursor glow effect for interaction
+        document.addEventListener('mousemove', (e) => {
+            const target = e.target;
+            if (target.closest('.glass-panel') || target.tagName === 'INPUT') {
+                const rect = target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                target.style.setProperty('--mouse-x', `${x}px`);
+                target.style.setProperty('--mouse-y', `${y}px`);
+            }
+        });
+    </script>
+</body></html>

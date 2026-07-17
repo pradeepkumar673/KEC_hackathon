@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Burn-Ex | Workout Generator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&amp;family=Inter:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-primary": "#c0000a",
+                    "primary-fixed-dim": "#ffb4aa",
+                    "outline": "#ad8883",
+                    "on-secondary-fixed-variant": "#46464b",
+                    "surface-container-lowest": "#190a08",
+                    "on-secondary": "#2f3034",
+                    "error": "#ffb4ab",
+                    "on-tertiary": "#003545",
+                    "secondary-container": "#46464b",
+                    "inverse-surface": "#fcdbd6",
+                    "surface-container-high": "#392522",
+                    "on-background": "#fcdbd6",
+                    "on-primary-container": "#5c0002",
+                    "background": "#1f0f0d",
+                    "on-error": "#690005",
+                    "surface-container-highest": "#44302d",
+                    "on-tertiary-fixed-variant": "#004d63",
+                    "surface-container": "#2d1b18",
+                    "secondary-fixed-dim": "#c6c6cb",
+                    "on-tertiary-container": "#002e3c",
+                    "surface-variant": "#44302d",
+                    "tertiary": "#68d3fc",
+                    "secondary": "#c6c6cb",
+                    "surface-container-low": "#291715",
+                    "surface": "#1f0f0d",
+                    "on-primary-fixed": "#410001",
+                    "on-surface-variant": "#e7bdb7",
+                    "on-secondary-fixed": "#1a1b1f",
+                    "tertiary-fixed-dim": "#68d3fc",
+                    "primary-container": "#ff5545",
+                    "tertiary-fixed": "#bbe9ff",
+                    "on-surface": "#fcdbd6",
+                    "surface-dim": "#1f0f0d",
+                    "surface-bright": "#493431",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-container": "#1d9cc3",
+                    "primary-fixed": "#ffdad5",
+                    "on-primary-fixed-variant": "#930005",
+                    "secondary-fixed": "#e3e2e7",
+                    "primary": "#ffb4aa",
+                    "on-secondary-container": "#b5b4ba",
+                    "on-primary": "#690003",
+                    "surface-tint": "#ffb4aa",
+                    "inverse-on-surface": "#402b29",
+                    "outline-variant": "#5d3f3b",
+                    "on-tertiary-fixed": "#001f29",
+                    "error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "xl": "80px",
+                    "sm": "12px",
+                    "md": "24px",
+                    "lg": "48px",
+                    "xs": "4px",
+                    "container-max": "1280px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "stats-num": ["Montserrat"],
+                    "body-md": ["Inter"],
+                    "headline-lg-mobile": ["Montserrat"],
+                    "display-lg": ["Montserrat"],
+                    "headline-lg": ["Montserrat"],
+                    "headline-md": ["Montserrat"],
+                    "label-bold": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "stats-num": ["24px", {"lineHeight": "1", "fontWeight": "900"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "800"}],
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "900"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "800"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "label-bold": ["14px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #fcdbd6;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(22, 22, 22, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(44, 44, 46, 0.8);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .primary-glow {
+            box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+        }
+        .primary-gradient {
+            background: linear-gradient(135deg, #ff5545, #c0000a);
+        }
+        .anatomy-svg path {
+            fill: #2C2C2E;
+            transition: fill 0.3s ease, filter 0.3s ease;
+            cursor: pointer;
+        }
+        .anatomy-svg path.selected {
+            fill: #ff5545;
+            filter: drop-shadow(0 0 8px rgba(255, 85, 69, 0.6));
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="antialiased overflow-hidden">
+<!-- Global Layout Wrapper -->
+<div class="flex h-screen w-full">
+<!-- SideNavBar (Predicted Component) -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-outline-variant bg-surface dark:bg-surface flex flex-col py-md z-50">
+<div class="px-md mb-lg">
+<h1 class="font-display-lg text-display-lg font-black text-primary dark:text-primary tracking-tighter">Burn-Ex</h1>
+<p class="font-label-bold text-label-bold text-on-surface-variant opacity-60 uppercase tracking-widest mt-1">Elite Performance</p>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Dashboard -->
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<!-- Workout (Active) -->
+<a class="flex items-center gap-4 px-4 py-3 text-primary dark:text-primary font-bold border-r-4 border-primary dark:border-primary bg-gradient-to-r from-primary/10 to-transparent shadow-[0_0_15px_rgba(255,180,170,0.2)] transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-body-md text-body-md">Workout</span>
+</a>
+<!-- Progress -->
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-body-md text-body-md">Progress</span>
+</a>
+<!-- Nutrition -->
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">restaurant</span>
+<span class="font-body-md text-body-md">Nutrition</span>
+</a>
+<!-- History -->
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-body-md text-body-md">History</span>
+</a>
+<!-- Profile -->
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md text-body-md">Profile</span>
+</a>
+<!-- Settings -->
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="px-md mt-auto pt-lg">
+<button class="w-full py-4 primary-gradient rounded-xl font-label-bold text-white shadow-lg primary-glow hover:opacity-90 active:scale-95 transition-all">
+                    Upgrade to Pro
+                </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 h-full relative overflow-hidden bg-background">
+<!-- TopNavBar (Predicted Component) -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-40 flex justify-between items-center px-md bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-b border-outline-variant dark:border-outline-variant">
+<div class="flex items-center gap-md">
+<div class="relative group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant opacity-60">search</span>
+<input class="bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-on-surface focus:ring-2 focus:ring-primary w-64 transition-all" placeholder="Search exercises..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="flex items-center gap-2 px-4 py-1.5 border border-primary text-primary rounded-full font-label-bold hover:bg-primary/10 transition-all active:opacity-80">
+<span class="material-symbols-outlined text-[18px]">videocam</span>
+                        Go Live
+                    </button>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-all">notifications</button>
+<div class="w-10 h-10 rounded-full border border-outline overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A cinematic close-up of a high-performance athlete's face in deep shadows, illuminated by intense red rim lighting. The style is gritty and hyper-realistic, capturing fine details of skin texture and focus. The background is a dark, minimalist high-tech gym environment. The overall mood is serious, determined, and technologically advanced." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyILtSvlRHok9fGwBcDILkmm-Y4GX7yp--LbC2DDHEHSKESfCt9GdWAFHf7jpC8mfEP6MSjXWKL0H52kmt7-ZG67L1EfFfplmllx778uKE-th0__ChsVUuC8MRjVBcuuJ8RnaGfNBbirh_eoSIAmTVzAgJGC-9jz_Am6i89iGL3ArdkrvgZkzhoPHIRIXlbj0dSjshX5wV2-fhthmlbon59-iozS2NsxWq4LsVek2t5e746DZl0cQJ"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Scrollable Canvas -->
+<div class="pt-24 pb-12 px-md h-full overflow-y-auto hide-scrollbar">
+<div class="max-w-6xl mx-auto space-y-lg">
+<!-- Goal Selection Section -->
+<section class="space-y-md">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface uppercase tracking-tighter">Define Your Objective</h2>
+<p class="text-on-surface-variant opacity-70">AI will optimize volume and intensity based on your target.</p>
+</div>
+<span class="font-stats-num text-stats-num text-primary">01</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<!-- Strength -->
+<div class="glass-panel p-md rounded-xl cursor-pointer group hover:border-primary transition-all relative overflow-hidden" onclick="selectGoal('strength', this)">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl">bolt</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-2 group-hover:text-primary">Strength</h3>
+<p class="text-body-md text-on-surface-variant text-sm">Low rep ranges (1-5), high intensity (85%+ 1RM). Focus on neural adaptations and heavy compounds.</p>
+<div class="mt-4 flex items-center gap-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="font-label-bold text-xs uppercase tracking-widest">Selected Mode</span>
+<span class="material-symbols-outlined text-xs">check_circle</span>
+</div>
+</div>
+<!-- Hypertrophy -->
+<div class="glass-panel p-md rounded-xl cursor-pointer group hover:border-primary border-primary transition-all relative overflow-hidden" onclick="selectGoal('hypertrophy', this)">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl">layers</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-2 text-primary">Hypertrophy</h3>
+<p class="text-body-md text-on-surface-variant text-sm">Moderate rep ranges (8-12), controlled tempo. Maximizing muscle fiber tear and metabolic stress.</p>
+<div class="mt-4 flex items-center gap-2 text-primary">
+<span class="font-label-bold text-xs uppercase tracking-widest">Selected Mode</span>
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<!-- Endurance -->
+<div class="glass-panel p-md rounded-xl cursor-pointer group hover:border-primary transition-all relative overflow-hidden" onclick="selectGoal('endurance', this)">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl">speed</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-2 group-hover:text-primary">Endurance</h3>
+<p class="text-body-md text-on-surface-variant text-sm">High rep ranges (15-20+), low rest periods. Improving cardiovascular capacity and stamina.</p>
+<div class="mt-4 flex items-center gap-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="font-label-bold text-xs uppercase tracking-widest">Selected Mode</span>
+<span class="material-symbols-outlined text-xs">check_circle</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Equipment & Anatomy Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Left Column: Equipment -->
+<div class="lg:col-span-4 space-y-lg">
+<section class="space-y-md">
+<div class="flex justify-between items-center">
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase tracking-tight">Equipment</h2>
+<span class="font-stats-num text-stats-num text-primary text-xl">02</span>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Barbell -->
+<div class="flex items-center justify-between glass-panel p-4 rounded-lg border-l-4 border-primary transition-all cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container flex items-center justify-center rounded">
+<span class="material-symbols-outlined">fitness_center</span>
+</div>
+<span class="font-label-bold">Barbell</span>
+</div>
+<input checked="" class="form-checkbox bg-transparent border-primary text-primary focus:ring-primary rounded-sm w-5 h-5" type="checkbox"/>
+</div>
+<!-- Dumbbell -->
+<div class="flex items-center justify-between glass-panel p-4 rounded-lg border-l-4 border-primary transition-all cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container flex items-center justify-center rounded">
+<span class="material-symbols-outlined">exercise</span>
+</div>
+<span class="font-label-bold">Dumbbell</span>
+</div>
+<input checked="" class="form-checkbox bg-transparent border-primary text-primary focus:ring-primary rounded-sm w-5 h-5" type="checkbox"/>
+</div>
+<!-- Kettlebell -->
+<div class="flex items-center justify-between glass-panel p-4 rounded-lg border-l-4 border-outline-variant hover:border-primary transition-all cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container flex items-center justify-center rounded">
+<span class="material-symbols-outlined">sports_handball</span>
+</div>
+<span class="font-label-bold opacity-60">Kettlebell</span>
+</div>
+<input class="form-checkbox bg-transparent border-outline text-primary focus:ring-primary rounded-sm w-5 h-5" type="checkbox"/>
+</div>
+<!-- Bodyweight -->
+<div class="flex items-center justify-between glass-panel p-4 rounded-lg border-l-4 border-primary transition-all cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container flex items-center justify-center rounded">
+<span class="material-symbols-outlined">accessibility_new</span>
+</div>
+<span class="font-label-bold">Bodyweight</span>
+</div>
+<input checked="" class="form-checkbox bg-transparent border-primary text-primary focus:ring-primary rounded-sm w-5 h-5" type="checkbox"/>
+</div>
+<!-- Bands -->
+<div class="flex items-center justify-between glass-panel p-4 rounded-lg border-l-4 border-outline-variant hover:border-primary transition-all cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container flex items-center justify-center rounded">
+<span class="material-symbols-outlined">texture</span>
+</div>
+<span class="font-label-bold opacity-60">Bands</span>
+</div>
+<input class="form-checkbox bg-transparent border-outline text-primary focus:ring-primary rounded-sm w-5 h-5" type="checkbox"/>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Anatomy -->
+<div class="lg:col-span-8 space-y-md">
+<div class="flex justify-between items-center">
+<h2 class="font-headline-md text-headline-md text-on-surface uppercase tracking-tight">Target Muscle Groups</h2>
+<div class="flex items-center gap-4">
+<div class="flex bg-surface-container-low rounded-full p-1">
+<button class="px-6 py-1.5 rounded-full bg-primary text-on-primary text-xs font-label-bold transition-all" id="toggleFront">Front</button>
+<button class="px-6 py-1.5 rounded-full text-on-surface-variant text-xs font-label-bold hover:text-on-surface transition-all" id="toggleBack">Back</button>
+</div>
+<span class="font-stats-num text-stats-num text-primary text-xl">03</span>
+</div>
+</div>
+<div class="glass-panel rounded-2xl h-[500px] flex items-center justify-center relative overflow-hidden p-md">
+<!-- Atmospheric Background Effect -->
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary rounded-full blur-[120px]"></div>
+</div>
+<!-- Mock Anatomy Illustration (Front View) -->
+<svg class="anatomy-svg w-full h-full max-h-[450px]" id="anatomyFront" viewbox="0 0 300 500">
+<!-- Shoulders -->
+<path d="M100 80 Q100 60 120 60 L180 60 Q200 60 200 80 L200 120 L100 120 Z" data-muscle="deltoids"></path>
+<!-- Chest -->
+<path class="selected" d="M110 125 L190 125 L190 180 L110 180 Z" data-muscle="pectorals"></path>
+<!-- Core -->
+<path d="M120 185 L180 185 L175 250 L125 250 Z" data-muscle="abs"></path>
+<!-- Arms -->
+<path d="M85 120 L100 120 L100 220 L85 220 Z" data-muscle="biceps"></path>
+<path d="M200 120 L215 120 L215 220 L200 220 Z" data-muscle="biceps"></path>
+<!-- Quads -->
+<path class="selected" d="M120 300 L145 300 L145 420 L120 420 Z" data-muscle="quadriceps"></path>
+<path class="selected" d="M155 300 L180 300 L180 420 L155 420 Z" data-muscle="quadriceps"></path>
+<!-- Joints/Indicators (Non-selectable) -->
+<circle cx="150" cy="40" fill="#3A3A3C" r="15"></circle> <!-- Head -->
+</svg>
+<!-- Muscle labels overlay -->
+<div class="absolute bottom-8 left-8 space-y-2">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary primary-glow"></div>
+<span class="text-xs font-label-bold uppercase tracking-wider text-primary">Selected (3)</span>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-surface-container rounded text-[10px] font-bold text-on-surface">Pectorals</span>
+<span class="px-3 py-1 bg-surface-container rounded text-[10px] font-bold text-on-surface">Quadriceps</span>
+<span class="px-3 py-1 bg-surface-container rounded text-[10px] font-bold text-on-surface">Deltoids</span>
+</div>
+</div>
+<div class="absolute top-4 right-4 glass-panel p-3 rounded-lg flex flex-col items-center gap-2">
+<button class="material-symbols-outlined text-primary hover:scale-110 transition-transform">zoom_in</button>
+<div class="h-px w-full bg-outline-variant"></div>
+<button class="material-symbols-outlined text-on-surface-variant hover:scale-110 transition-transform">zoom_out</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Generation Action -->
+<div class="flex flex-col items-center justify-center pt-8 pb-16">
+<div class="text-center mb-8 max-w-md">
+<p class="text-on-surface-variant font-body-md text-sm mb-2 italic">"Ready to push your limits? Our AI engine has calculated 12,450 possible variations for your current selection."</p>
+</div>
+<button class="relative group h-20 w-full max-w-xl">
+<!-- Background Layer -->
+<div class="absolute inset-0 primary-gradient rounded-xl primary-glow group-hover:scale-[1.02] transition-transform duration-300"></div>
+<!-- Animated Pulse Effect -->
+<div class="absolute inset-0 border-2 border-primary rounded-xl animate-ping opacity-20 group-hover:opacity-40 transition-opacity"></div>
+<!-- Content Layer -->
+<div class="absolute inset-0 flex items-center justify-between px-lg">
+<span class="font-headline-md text-white uppercase tracking-widest text-2xl font-black">Build My Session</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-white text-4xl group-hover:translate-x-2 transition-transform duration-300">double_arrow</span>
+</div>
+</div>
+</button>
+<div class="mt-6 flex items-center gap-8 text-on-surface-variant text-xs font-label-bold opacity-40 uppercase tracking-[0.2em]">
+<span>EST. DURATION: 45 MIN</span>
+<span class="w-1 h-1 bg-on-surface-variant rounded-full"></span>
+<span>DIFFICULTY: ELITE</span>
+<span class="w-1 h-1 bg-on-surface-variant rounded-full"></span>
+<span>XP: +350</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Toast / AI Indicator -->
+<div class="fixed bottom-8 right-8 z-50 glass-panel p-4 rounded-xl flex items-center gap-4 border-primary/50 shadow-2xl animate-bounce-slow">
+<div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+<span class="text-xs font-label-bold text-on-surface">AI ENGINE: OPTIMIZING...</span>
+<span class="material-symbols-outlined text-primary text-lg">psychology</span>
+</div>
+</main>
+</div>
+<script>
+        // Goal Selection Logic
+        function selectGoal(goal, element) {
+            // Reset all panels
+            const panels = document.querySelectorAll('[onclick^="selectGoal"]');
+            panels.forEach(p => {
+                p.classList.remove('border-primary');
+                const title = p.querySelector('h3');
+                const indicator = p.querySelector('.flex.items-center');
+                const icon = indicator.querySelector('.material-symbols-outlined');
+                
+                title.classList.remove('text-primary');
+                indicator.classList.add('opacity-0');
+                icon.style.fontVariationSettings = "'FILL' 0";
+            });
+
+            // Set active panel
+            element.classList.add('border-primary');
+            const activeTitle = element.querySelector('h3');
+            const activeIndicator = element.querySelector('.flex.items-center');
+            const activeIcon = activeIndicator.querySelector('.material-symbols-outlined');
+            
+            activeTitle.classList.add('text-primary');
+            activeIndicator.classList.remove('opacity-0');
+            activeIcon.style.fontVariationSettings = "'FILL' 1";
+        }
+
+        // Toggle Anatomy Logic
+        const toggleFront = document.getElementById('toggleFront');
+        const toggleBack = document.getElementById('toggleBack');
+        
+        toggleFront.addEventListener('click', () => {
+            toggleFront.classList.add('bg-primary', 'text-on-primary');
+            toggleFront.classList.remove('text-on-surface-variant');
+            toggleBack.classList.remove('bg-primary', 'text-on-primary');
+            toggleBack.classList.add('text-on-surface-variant');
+            // In a real app, swap SVG contents here
+        });
+
+        toggleBack.addEventListener('click', () => {
+            toggleBack.classList.add('bg-primary', 'text-on-primary');
+            toggleBack.classList.remove('text-on-surface-variant');
+            toggleFront.classList.remove('bg-primary', 'text-on-primary');
+            toggleFront.classList.add('text-on-surface-variant');
+            // In a real app, swap SVG contents here
+        });
+
+        // Muscle Selection Logic
+        document.querySelectorAll('.anatomy-svg path').forEach(path => {
+            path.addEventListener('click', function() {
+                this.classList.toggle('selected');
+            });
+        });
+
+        // Interaction for checkboxes to sync with visual parent
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const parent = this.closest('.glass-panel');
+                const text = parent.querySelector('.font-label-bold');
+                if(this.checked) {
+                    parent.classList.add('border-primary');
+                    parent.classList.remove('border-outline-variant');
+                    text.classList.remove('opacity-60');
+                } else {
+                    parent.classList.remove('border-primary');
+                    parent.classList.add('border-outline-variant');
+                    text.classList.add('opacity-60');
+                }
+            });
+        });
+    </script>
+</body></html>

@@ -778,9 +778,6 @@ const LiveWorkoutTracker = () => {
           Your profile is missing weight — calorie estimates will be unavailable until it's set.
         </p>
       )}
-      {!cvReady && (
-        <p className="text-xs text-gray-500 mb-4">Loading OpenCV.js (angle math will use JS fallback until ready)...</p>
-      )}
       {cameraError && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg p-3 mb-4">{cameraError}</div>
       )}

@@ -9,6 +9,7 @@ import OfflineBanner from './components/common/OfflineBanner';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import WorkoutGenerator from './components/workout/WorkoutGenerator';
 import LiveWorkoutTracker from './components/workout/LiveWorkoutTracker';
 import Nutrition from './pages/Nutrition';
 import ProgressDashboard from './pages/ProgressDashboard';
@@ -26,6 +27,7 @@ function App() {
 
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/workout-generator" element={<WorkoutGenerator />} />
               <Route path="/live-tracker" element={<LiveWorkoutTracker />} />
               <Route path="/nutrition" element={<Nutrition />} />
               <Route path="/progress" element={<ProgressDashboard />} />

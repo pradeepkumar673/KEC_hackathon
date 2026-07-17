@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Burn-Ex | Elite Performance Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700;800;900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Montserrat:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-primary": "#c0000a",
+                    "primary-fixed-dim": "#ffb4aa",
+                    "outline": "#ad8883",
+                    "on-secondary-fixed-variant": "#46464b",
+                    "surface-container-lowest": "#190a08",
+                    "on-secondary": "#2f3034",
+                    "error": "#ffb4ab",
+                    "on-tertiary": "#003545",
+                    "secondary-container": "#46464b",
+                    "inverse-surface": "#fcdbd6",
+                    "surface-container-high": "#392522",
+                    "on-background": "#fcdbd6",
+                    "on-primary-container": "#5c0002",
+                    "background": "#1f0f0d",
+                    "on-error": "#690005",
+                    "surface-container-highest": "#44302d",
+                    "on-tertiary-fixed-variant": "#004d63",
+                    "surface-container": "#2d1b18",
+                    "secondary-fixed-dim": "#c6c6cb",
+                    "on-tertiary-container": "#002e3c",
+                    "surface-variant": "#44302d",
+                    "tertiary": "#68d3fc",
+                    "secondary": "#c6c6cb",
+                    "surface-container-low": "#291715",
+                    "surface": "#1f0f0d",
+                    "on-primary-fixed": "#410001",
+                    "on-surface-variant": "#e7bdb7",
+                    "on-secondary-fixed": "#1a1b1f",
+                    "tertiary-fixed-dim": "#68d3fc",
+                    "primary-container": "#ff5545",
+                    "tertiary-fixed": "#bbe9ff",
+                    "on-surface": "#fcdbd6",
+                    "surface-dim": "#1f0f0d",
+                    "surface-bright": "#493431",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-container": "#1d9cc3",
+                    "primary-fixed": "#ffdad5",
+                    "on-primary-fixed-variant": "#930005",
+                    "secondary-fixed": "#e3e2e7",
+                    "primary": "#ffb4aa",
+                    "on-secondary-container": "#b5b4ba",
+                    "on-primary": "#690003",
+                    "surface-tint": "#ffb4aa",
+                    "inverse-on-surface": "#402b29",
+                    "outline-variant": "#5d3f3b",
+                    "on-tertiary-fixed": "#001f29",
+                    "error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "xl": "80px",
+                    "sm": "12px",
+                    "md": "24px",
+                    "lg": "48px",
+                    "xs": "4px",
+                    "container-max": "1280px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "stats-num": ["Montserrat"],
+                    "body-md": ["Inter"],
+                    "headline-lg-mobile": ["Montserrat"],
+                    "display-lg": ["Montserrat"],
+                    "headline-lg": ["Montserrat"],
+                    "headline-md": ["Montserrat"],
+                    "label-bold": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "stats-num": ["24px", {"lineHeight": "1", "fontWeight": "900"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "800"}],
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "900"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "800"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "label-bold": ["14px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0A0A0A;
+            color: #fcdbd6;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: #161616;
+            border: 1px solid #2C2C2E;
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
+        }
+        .primary-glow {
+            box-shadow: 0 0 20px rgba(255, 59, 48, 0.2);
+        }
+        .chart-grid {
+            background-image: linear-gradient(#2C2C2E 1px, transparent 1px), linear-gradient(90deg, #2C2C2E 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0A0A0A; }
+        ::-webkit-scrollbar-thumb { background: #5d3f3b; border-radius: 2px; }
+    </style>
+</head>
+<body class="font-body-md text-body-md">
+<!-- Side Navigation -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-outline-variant bg-surface dark:bg-surface flex flex-col py-md z-[60]">
+<div class="px-md mb-lg">
+<h1 class="font-display-lg text-display-lg font-black text-primary dark:text-primary tracking-tighter">Burn-Ex</h1>
+<p class="text-on-surface-variant opacity-70 text-sm">Elite Performance</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span>Workout</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-primary dark:text-primary font-bold border-r-4 border-primary dark:border-primary bg-gradient-to-r from-primary/10 to-transparent shadow-[0_0_15px_rgba(255,180,170,0.2)]" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span>Progress</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined">restaurant</span>
+<span>Nutrition</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined">history</span>
+<span>History</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined">person</span>
+<span>Profile</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="px-md mt-auto">
+<button class="w-full py-3 bg-gradient-to-r from-primary-container to-inverse-primary text-on-primary-container font-label-bold text-label-bold rounded-lg uppercase tracking-widest primary-glow transition-all active:scale-95">
+                Upgrade to Pro
+            </button>
+</div>
+</aside>
+<!-- Top Navigation -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-b border-outline-variant flex justify-between items-center px-md">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="w-full bg-background border-b-2 border-outline-variant focus:border-primary outline-none py-1.5 pl-10 pr-4 text-sm transition-colors" placeholder="Search analytics..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="bg-primary/10 border border-primary/20 px-4 py-1.5 text-primary text-xs font-bold rounded flex items-center gap-2 hover:bg-primary/20 transition-all">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                Go Live
+            </button>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<button class="material-symbols-outlined hover:text-primary transition-all">notifications</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional athletic profile headshot of a user with sharp lighting, set against a dark architectural background. The image has a cinematic high-performance feel with subtle red ambient lighting reflecting on the skin, maintaining the dark-mode aesthetic of a high-end fitness application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6XMWDccOhWbdVX1h2Bduftx0Toz8BesOnRsWaLHDtavkFnTJSZakZHdOSrwTloG--kGXSE3fOcFEcAOF0YnUnYEcpUr3bi_KThfheBSi_-z3HMi4WZ-e3a7PzkcvOZraaE75UR5jkkKStJqXvylNlElIOFkjyyaWcAOxxSh7dxmRO7OCiH7GLnUsEzKhUd6DjpW1rCzieAF8rz9yKiZh0UV1QiY_VwHCRT1aF8z1xWUmEzwDR7E9i"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 px-md pb-md min-h-screen">
+<!-- Header Comparison Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter mb-lg">
+<div class="glass-card p-md rounded-xl">
+<p class="text-xs font-label-bold text-on-surface-variant uppercase mb-2">Strength Index</p>
+<div class="flex items-end gap-2">
+<span class="font-stats-num text-stats-num text-on-surface">84.2</span>
+<span class="text-tertiary text-xs font-bold mb-1 flex items-center">
+<span class="material-symbols-outlined text-sm">arrow_upward</span> 12%
+                    </span>
+</div>
+<div class="mt-4 h-1 bg-outline-variant w-full relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-primary to-primary-container w-[84.2%]"></div>
+</div>
+</div>
+<div class="glass-card p-md rounded-xl">
+<p class="text-xs font-label-bold text-on-surface-variant uppercase mb-2">Endurance Score</p>
+<div class="flex items-end gap-2">
+<span class="font-stats-num text-stats-num text-on-surface">67.5</span>
+<span class="text-tertiary text-xs font-bold mb-1 flex items-center">
+<span class="material-symbols-outlined text-sm">arrow_upward</span> 5%
+                    </span>
+</div>
+<div class="mt-4 h-1 bg-outline-variant w-full relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-tertiary to-tertiary-container w-[67.5%]"></div>
+</div>
+</div>
+<div class="glass-card p-md rounded-xl">
+<p class="text-xs font-label-bold text-on-surface-variant uppercase mb-2">Weekly Volume</p>
+<div class="flex items-end gap-2">
+<span class="font-stats-num text-stats-num text-on-surface">42.8k</span>
+<span class="text-on-surface-variant text-xs mb-1">lbs</span>
+</div>
+<div class="mt-4 h-1 bg-outline-variant w-full relative overflow-hidden">
+<div class="absolute inset-0 bg-primary w-[72%]"></div>
+</div>
+</div>
+<div class="glass-card p-md rounded-xl">
+<p class="text-xs font-label-bold text-on-surface-variant uppercase mb-2">Recovery HRV</p>
+<div class="flex items-end gap-2">
+<span class="font-stats-num text-stats-num text-on-surface">92</span>
+<span class="text-tertiary text-xs font-bold mb-1">ms</span>
+</div>
+<div class="mt-4 h-1 bg-outline-variant w-full relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-tertiary to-primary w-[92%]"></div>
+</div>
+</div>
+</div>
+<!-- Bento Grid Charts Section -->
+<div class="grid grid-cols-12 gap-gutter mb-lg">
+<!-- Rep Volume Chart (Bar) -->
+<div class="col-span-12 lg:col-span-7 glass-card p-md rounded-xl min-h-[400px] flex flex-col">
+<div class="flex justify-between items-center mb-md">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Rep Volume</h2>
+<p class="text-xs text-on-surface-variant">Weekly performance aggregate</p>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-surface-variant text-xs rounded border border-outline-variant">Daily</button>
+<button class="px-3 py-1 bg-primary text-on-primary text-xs rounded font-bold">Weekly</button>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-between gap-4 px-4 chart-grid relative">
+<div class="w-full h-full absolute inset-0 opacity-10 pointer-events-none"></div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-outline-variant group-hover:bg-primary transition-all duration-500 rounded-t-xs" style="height: 60%;"></div>
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Mon</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-outline-variant group-hover:bg-primary transition-all duration-500 rounded-t-xs" style="height: 45%;"></div>
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Tue</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-primary transition-all duration-500 rounded-t-xs" style="height: 85%;"></div>
+<span class="text-[10px] uppercase font-bold text-on-surface">Wed</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-outline-variant group-hover:bg-primary transition-all duration-500 rounded-t-xs" style="height: 30%;"></div>
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Thu</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-outline-variant group-hover:bg-primary transition-all duration-500 rounded-t-xs" style="height: 70%;"></div>
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Fri</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-outline-variant group-hover:bg-primary transition-all duration-500 rounded-t-xs" style="height: 15%;"></div>
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Sat</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-outline-variant group-hover:bg-primary transition-all duration-500 rounded-t-xs" style="height: 55%;"></div>
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Sun</span>
+</div>
+</div>
+</div>
+<!-- Calorie Burn (Line) -->
+<div class="col-span-12 lg:col-span-5 glass-card p-md rounded-xl min-h-[400px] flex flex-col">
+<div class="flex justify-between items-center mb-md">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Calorie Burn</h2>
+<p class="text-xs text-on-surface-variant">Total daily expenditure</p>
+</div>
+</div>
+<div class="flex-1 relative overflow-hidden chart-grid">
+<svg class="w-full h-full p-4" preserveaspectratio="none" viewbox="0 0 400 200">
+<defs>
+<lineargradient id="line-grad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#ffb4aa" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#ffb4aa" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,150 L50,120 L100,160 L150,100 L200,80 L250,110 L300,50 L350,70 L400,30 V200 H0 Z" fill="url(#line-grad)"></path>
+<path d="M0,150 L50,120 L100,160 L150,100 L200,80 L250,110 L300,50 L350,70 L400,30" fill="none" stroke="#ffb4aa" stroke-linecap="round" stroke-width="3"></path>
+<!-- Dots -->
+<circle class="animate-pulse" cx="200" cy="80" fill="#ffb4aa" r="5"></circle>
+</svg>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+<div class="bg-surface-container border border-primary/40 px-3 py-1.5 rounded-lg text-xs font-bold shadow-xl">
+                            Peak: 3,420 kcal
+                        </div>
+</div>
+</div>
+<div class="mt-4 flex justify-between text-[10px] font-bold text-on-surface-variant uppercase">
+<span>Week 1</span>
+<span>Week 2</span>
+<span>Week 3</span>
+<span>Week 4</span>
+</div>
+</div>
+<!-- Form Improvement (Area Chart) -->
+<div class="col-span-12 lg:col-span-8 glass-card p-md rounded-xl min-h-[300px]">
+<div class="flex justify-between items-center mb-md">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Form Consistency</h2>
+<p class="text-xs text-on-surface-variant">AI Analysis: Squat & Deadlift Accuracy</p>
+</div>
+</div>
+<div class="h-48 w-full relative">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 40">
+<path d="M0,40 Q10,35 20,38 T40,32 T60,25 T80,15 T100,10 V40 H0 Z" fill="#68d3fc33"></path>
+<path d="M0,40 Q10,35 20,38 T40,32 T60,25 T80,15 T100,10" fill="none" stroke="#68d3fc" stroke-width="1"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-around px-10">
+<div class="h-full w-px bg-outline-variant opacity-20"></div>
+<div class="h-full w-px bg-outline-variant opacity-20"></div>
+<div class="h-full w-px bg-outline-variant opacity-20"></div>
+</div>
+</div>
+<div class="flex items-center gap-6 mt-4">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 bg-tertiary rounded-full"></div>
+<span class="text-xs text-on-surface-variant">Current Accuracy: 94%</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 bg-outline rounded-full"></div>
+<span class="text-xs text-on-surface-variant">Average: 82%</span>
+</div>
+</div>
+</div>
+<!-- Muscle Activation Heatmap -->
+<div class="col-span-12 lg:col-span-4 glass-card p-md rounded-xl flex flex-col items-center">
+<h2 class="font-headline-md text-headline-md text-on-surface w-full mb-xs">Muscle Activation</h2>
+<p class="text-xs text-on-surface-variant w-full mb-md">Frequency of training heatmap</p>
+<div class="relative w-full max-w-[200px] aspect-[1/2] mt-4">
+<!-- Human Anatomy Simplified Placeholder SVG -->
+<svg class="w-full h-full fill-current text-outline-variant/30" viewbox="0 0 100 200">
+<!-- Head -->
+<circle cx="50" cy="15" r="10"></circle>
+<!-- Torso -->
+<rect class="text-primary-container" height="60" rx="5" width="30" x="35" y="30"></rect>
+<!-- Arms -->
+<path class="text-primary/50" d="M35,35 L15,80" stroke="currentColor" stroke-linecap="round" stroke-width="12"></path>
+<path class="text-primary/50" d="M65,35 L85,80" stroke="currentColor" stroke-linecap="round" stroke-width="12"></path>
+<!-- Legs -->
+<path class="text-inverse-primary" d="M40,90 L40,180" stroke="currentColor" stroke-linecap="round" stroke-width="15"></path>
+<path class="text-inverse-primary" d="M60,90 L60,180" stroke="currentColor" stroke-linecap="round" stroke-width="15"></path>
+</svg>
+<div class="absolute -right-8 top-1/4 space-y-4">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 bg-inverse-primary rounded-xs"></span>
+<span class="text-[10px] uppercase font-bold">High</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 bg-primary/50 rounded-xs"></span>
+<span class="text-[10px] uppercase font-bold">Mid</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 bg-outline-variant/30 rounded-xs"></span>
+<span class="text-[10px] uppercase font-bold">Low</span>
+</div>
+</div>
+</div>
+<div class="mt-8 text-center">
+<p class="text-xs font-bold text-on-surface">Dominant: Lower Body</p>
+<p class="text-[10px] text-on-surface-variant">Last Session: Heavy Squat Focus</p>
+</div>
+</div>
+</div>
+<!-- History Table -->
+<div class="glass-card rounded-xl overflow-hidden mb-lg">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+<h2 class="font-headline-md text-headline-md text-on-surface">Recent Training sessions</h2>
+<button class="text-primary text-xs font-bold hover:underline">Export Data</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead class="bg-surface-container-highest/50 text-on-surface-variant font-label-bold">
+<tr>
+<th class="p-md border-b border-outline-variant">Date</th>
+<th class="p-md border-b border-outline-variant">Workout Type</th>
+<th class="p-md border-b border-outline-variant">Volume</th>
+<th class="p-md border-b border-outline-variant">Duration</th>
+<th class="p-md border-b border-outline-variant">Avg Heart Rate</th>
+<th class="p-md border-b border-outline-variant text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="hover:bg-surface-variant transition-colors group">
+<td class="p-md font-bold">Oct 24, 2023</td>
+<td class="p-md">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">fitness_center</span>
+                                    Powerlifting - Lower A
+                                </span>
+</td>
+<td class="p-md font-stats-num text-sm">18,420 lbs</td>
+<td class="p-md">72m</td>
+<td class="p-md">142 bpm</td>
+<td class="p-md text-right">
+<button class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-all">chevron_right</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-variant transition-colors group">
+<td class="p-md font-bold">Oct 22, 2023</td>
+<td class="p-md">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-lg">bolt</span>
+                                    HIIT & Conditioning
+                                </span>
+</td>
+<td class="p-md font-stats-num text-sm">2,100 lbs</td>
+<td class="p-md">45m</td>
+<td class="p-md">168 bpm</td>
+<td class="p-md text-right">
+<button class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-all">chevron_right</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-variant transition-colors group">
+<td class="p-md font-bold">Oct 21, 2023</td>
+<td class="p-md">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">fitness_center</span>
+                                    Hypertrophy - Chest/Back
+                                </span>
+</td>
+<td class="p-md font-stats-num text-sm">12,500 lbs</td>
+<td class="p-md">65m</td>
+<td class="p-md">135 bpm</td>
+<td class="p-md text-right">
+<button class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-all">chevron_right</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-md text-center bg-surface-container-low border-t border-outline-variant">
+<button class="text-xs font-bold uppercase tracking-widest text-on-surface-variant hover:text-primary transition-all">View All History</button>
+</div>
+</div>
+</main>
+<script>
+        // Micro-interaction for hover effects on charts
+        document.querySelectorAll('.group').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                el.style.transform = 'translateY(-5px)';
+            });
+            el.addEventListener('mouseleave', () => {
+                el.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>

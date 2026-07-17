@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Burn-Ex | Elite Nutrition Intelligence</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Montserrat:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(22, 22, 22, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        }
+        .glow-primary {
+            box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0A0A0A;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2C2C2E;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "inverse-primary": "#c0000a",
+                "primary-fixed-dim": "#ffb4aa",
+                "outline": "#ad8883",
+                "on-secondary-fixed-variant": "#46464b",
+                "surface-container-lowest": "#190a08",
+                "on-secondary": "#2f3034",
+                "error": "#ffb4ab",
+                "on-tertiary": "#003545",
+                "secondary-container": "#46464b",
+                "inverse-surface": "#fcdbd6",
+                "surface-container-high": "#392522",
+                "on-background": "#fcdbd6",
+                "on-primary-container": "#5c0002",
+                "background": "#1f0f0d",
+                "on-error": "#690005",
+                "surface-container-highest": "#44302d",
+                "on-tertiary-fixed-variant": "#004d63",
+                "surface-container": "#2d1b18",
+                "secondary-fixed-dim": "#c6c6cb",
+                "on-tertiary-container": "#002e3c",
+                "surface-variant": "#44302d",
+                "tertiary": "#68d3fc",
+                "secondary": "#c6c6cb",
+                "surface-container-low": "#291715",
+                "surface": "#1f0f0d",
+                "on-primary-fixed": "#410001",
+                "on-surface-variant": "#e7bdb7",
+                "on-secondary-fixed": "#1a1b1f",
+                "tertiary-fixed-dim": "#68d3fc",
+                "primary-container": "#ff5545",
+                "tertiary-fixed": "#bbe9ff",
+                "on-surface": "#fcdbd6",
+                "surface-dim": "#1f0f0d",
+                "surface-bright": "#493431",
+                "on-error-container": "#ffdad6",
+                "tertiary-container": "#1d9cc3",
+                "primary-fixed": "#ffdad5",
+                "on-primary-fixed-variant": "#930005",
+                "secondary-fixed": "#e3e2e7",
+                "primary": "#ffb4aa",
+                "on-secondary-container": "#b5b4ba",
+                "on-primary": "#690003",
+                "surface-tint": "#ffb4aa",
+                "inverse-on-surface": "#402b29",
+                "outline-variant": "#5d3f3b",
+                "on-tertiary-fixed": "#001f29",
+                "error-container": "#93000a"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+              },
+              "spacing": {
+                "base": "8px",
+                "xl": "80px",
+                "sm": "12px",
+                "md": "24px",
+                "lg": "48px",
+                "xs": "4px",
+                "container-max": "1280px",
+                "gutter": "24px"
+              },
+              "fontFamily": {
+                "stats-num": ["Montserrat"],
+                "body-md": ["Inter"],
+                "display-lg": ["Montserrat"],
+                "headline-lg": ["Montserrat"],
+                "headline-md": ["Montserrat"],
+                "label-bold": ["Inter"],
+                "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                "stats-num": ["24px", {"lineHeight": "1", "fontWeight": "900"}],
+                "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "900"}],
+                "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "800"}],
+                "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                "label-bold": ["14px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md selection:bg-primary selection:text-on-primary">
+<!-- Sidebar Navigation -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant bg-surface flex flex-col py-md z-40">
+<div class="px-md mb-lg">
+<h1 class="font-display-lg text-display-lg font-black text-primary tracking-tighter">Burn-Ex</h1>
+<p class="text-on-surface-variant font-label-bold text-xs uppercase tracking-widest mt-1">Elite Performance</p>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Active: Nutrition -->
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-bold">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-label-bold">Workout</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-label-bold">Progress</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-primary font-bold border-r-4 border-primary bg-gradient-to-r from-primary/10 to-transparent shadow-[0_0_15px_rgba(255,180,170,0.2)]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+<span class="font-label-bold">Nutrition</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-bold">History</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-bold">Profile</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-bold">Settings</span>
+</a>
+</nav>
+<div class="px-md mt-auto">
+<button class="w-full py-3 px-4 bg-gradient-to-br from-primary to-primary-container text-on-primary font-label-bold rounded-lg glow-primary active:scale-95 transition-all">
+                Upgrade to Pro
+            </button>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-64 min-h-screen p-md space-y-md">
+<!-- Header -->
+<header class="flex justify-between items-end mb-lg">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Nutrition Intel</h2>
+<p class="text-on-surface-variant font-body-md">Precision fueling for your training phase.</p>
+</div>
+<div class="flex items-center gap-md">
+<div class="text-right">
+<p class="text-xs font-label-bold text-primary uppercase">Training Mode</p>
+<p class="font-stats-num text-stats-num">Hypertrophy</p>
+</div>
+<div class="w-12 h-12 rounded-full border-2 border-primary overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional athletic profile portrait of a high-performance athlete in a dark gym setting. The lighting is dramatic and low-key, highlighting muscle definition with high-contrast red and orange rim lighting consistent with the Burn-Ex brand aesthetic. The mood is intense and focused, reflecting peak physical condition." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUxW6HJnt8A6ICjh-PKCrb_loQauxwWnUkldfZsaakTO_Zt1whh_CW1S7TVuXSWpwkvLV282NWlA2Pug42Zw0Wz6SL4sxBjdQ-D53p4MZRgm8lATGOgfx1nKYlKVMKpZARjD6Dk16w0WAcMFNLn9TUy_ZGMabc-z4MU4XNIGKaOhM8J2XXHfNRom162LIDceKb7XG8-leT_9vqHsT68i3CXDAa3TGqTywtYw6LHKC1LKnnhIK8Kw3V"/>
+</div>
+</div>
+</header>
+<!-- Top Row: Daily Calorie Summary -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="col-span-2 glass-panel p-md rounded-xl flex items-center gap-lg">
+<div class="relative w-40 h-40">
+<svg class="w-full h-full" viewbox="0 0 100 100">
+<circle class="text-surface-container stroke-current" cx="50" cy="50" fill="transparent" r="40" stroke-width="10"></circle>
+<circle class="text-primary stroke-current progress-ring-circle" cx="50" cy="50" fill="transparent" r="40" stroke-dasharray="251.2" stroke-dashoffset="62.8" stroke-linecap="round" stroke-width="10"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-stats-num text-3xl">1,920</span>
+<span class="text-xs font-label-bold text-on-surface-variant">Consumed</span>
+</div>
+</div>
+<div class="flex-1 grid grid-cols-3 gap-md">
+<div class="space-y-1">
+<p class="text-xs font-label-bold text-on-surface-variant uppercase tracking-widest">BMR</p>
+<p class="font-stats-num text-stats-num text-tertiary">1,850</p>
+<div class="h-1 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-full"></div>
+</div>
+</div>
+<div class="space-y-1">
+<p class="text-xs font-label-bold text-on-surface-variant uppercase tracking-widest">TDEE</p>
+<p class="font-stats-num text-stats-num text-primary">2,650</p>
+<div class="h-1 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[72%]"></div>
+</div>
+</div>
+<div class="space-y-1">
+<p class="text-xs font-label-bold text-on-surface-variant uppercase tracking-widest">Goal</p>
+<p class="font-stats-num text-stats-num text-on-surface">2,300</p>
+<div class="h-1 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-on-surface w-[83%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Smart Suggestion Sidebar -->
+<div class="glass-panel p-md rounded-xl bg-gradient-to-br from-tertiary/10 to-transparent flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-sm">
+<span class="material-symbols-outlined text-tertiary">lightbulb</span>
+<span class="font-label-bold text-tertiary uppercase tracking-widest">AI Suggestion</span>
+</div>
+<h3 class="font-headline-md text-headline-md leading-tight mb-xs">380 kcal left</h3>
+<p class="text-on-surface-variant text-sm">You are 15g short on your protein goal for the day.</p>
+</div>
+<div class="mt-md p-sm bg-surface-container rounded flex items-center gap-sm">
+<div class="w-12 h-12 rounded bg-surface border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A top-down macro photograph of a healthy Greek yogurt bowl in a dark ceramic bowl. The bowl contains thick white yogurt topped with vibrant blueberries, chia seeds, and a drizzle of honey. The image is styled with clinical precision, featuring sharp focus and high-performance dark lighting accents, fitting a fitness nutrition interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLlfLfC6tkq07ZE7NDIwFyZ0CPz1VO682EWJ8ABrAfCxAa5PznVL_HpV3SFLphEZ9Bw__Ik77pBZYSQXr8opOdCHdYmpkn1MZRKQZO-nDatZr457cel17Xi6ciBU2zoNMBnvyFTIItZw7wzqgXM6tiefxsyVyVTdhru_b_Kxrvf67b-uVoRZCM2Ue56S3EPG0UZ7sjHNrm0mdx8A8uQOpwe-zp1DKl73_x2PpNVzt2deCJgoS_fneY"/>
+</div>
+<div>
+<p class="font-label-bold text-sm">Try a Greek Yogurt bowl</p>
+<p class="text-xs text-on-surface-variant">180 kcal • 18g Protein</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Middle Row: AI Scanner and Micro Stats -->
+<section class="grid grid-cols-1 lg:grid-cols-4 gap-md">
+<!-- AI Food Scanner -->
+<div class="lg:col-span-3 glass-panel rounded-xl overflow-hidden relative group">
+<div class="h-80 w-full relative">
+<img class="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" data-alt="A cinematic, high-angle shot of a nutritious meal featuring grilled salmon, quinoa, and roasted asparagus on a black slate plate. The image has a technical overlay effect suggesting a biometric scan, with faint glowing red grid lines and data points highlighting the food components. The aesthetic is futuristic and high-tech, using a dark color palette with vibrant orange-red highlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeTY4YyhVPQ6V6VS4CdRAZbDazHEkZsap12BoCKd7rvbzHXJ2WvvMrfPdj3QGSxELt5d1FxrpwqQkg4fxhlKV56B46cJPJDWaEt6sYiW-phv7TezEAfyjX1MT1N4JNUASwPHU8pkzfb2Ri1-W0kBWpF4b5biwCggir-ZWYIe_oust_2JTvTzfE_XOAA_ivhwmsyDGqVyGHV4h5usJ-UnyXRV9UiJHjHpjkpiLLPwxRn4WoT3jpjhBE"/>
+<!-- Scanner Overlays -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-3/4 h-3/4 border-2 border-dashed border-primary/40 rounded-xl flex flex-col items-center justify-center space-y-4">
+<span class="material-symbols-outlined text-6xl text-primary animate-pulse">photo_camera</span>
+<p class="font-label-bold text-lg text-primary">Drop image to log</p>
+</div>
+</div>
+<!-- AI Result Overlay -->
+<div class="absolute bottom-md left-md p-sm glass-panel bg-primary/20 border-primary/30 rounded-lg flex items-center gap-md backdrop-blur-xl">
+<div class="space-y-1">
+<p class="text-[10px] font-bold text-primary uppercase">Detected</p>
+<p class="font-stats-num text-stats-num">450 <span class="text-sm font-normal">kcal</span></p>
+</div>
+<div class="h-8 w-px bg-primary/20"></div>
+<div class="space-y-1">
+<p class="text-[10px] font-bold text-primary uppercase">Protein</p>
+<p class="font-stats-num text-stats-num">35<span class="text-sm font-normal">g</span></p>
+</div>
+<div class="h-8 w-px bg-primary/20"></div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded font-label-bold text-sm hover:scale-105 transition-transform">Confirm Log</button>
+</div>
+</div>
+</div>
+<!-- Macro Progress -->
+<div class="space-y-md">
+<div class="glass-panel p-md rounded-xl flex flex-col justify-center h-[calc(50%-12px)]">
+<div class="flex justify-between items-center mb-sm">
+<span class="text-xs font-label-bold uppercase text-on-surface-variant">Protein</span>
+<span class="text-xs font-stats-num text-primary">145 / 180g</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-primary-container w-[80%] glow-primary"></div>
+</div>
+</div>
+<div class="glass-panel p-md rounded-xl flex flex-col justify-center h-[calc(50%-12px)]">
+<div class="flex justify-between items-center mb-sm">
+<span class="text-xs font-label-bold uppercase text-on-surface-variant">Carbs</span>
+<span class="text-xs font-stats-num text-tertiary">210 / 250g</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-tertiary to-tertiary-container w-[84%]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Daily Log -->
+<section class="glass-panel rounded-xl overflow-hidden">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+<h3 class="font-headline-md text-headline-md">Daily Log</h3>
+<div class="flex gap-sm">
+<button class="p-2 glass-panel rounded hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+<button class="bg-primary text-on-primary px-4 py-2 rounded font-label-bold text-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                        Manual Entry
+                    </button>
+</div>
+</div>
+<div class="divide-y divide-outline-variant">
+<!-- Breakfast -->
+<div class="p-md flex items-center gap-md group hover:bg-surface-variant/30 transition-colors">
+<div class="w-16 h-16 rounded-lg bg-surface border border-outline-variant overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close-up macro shot of a bowl of overnight oats with sliced strawberries, chia seeds, and walnuts. Professional culinary photography with high-performance dark mode lighting, featuring sharp details and rich, saturated colors against a dark background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkemjMrk5g2D_eHNXRLVEfCAl7hQrLicePDIo3YdkYbjkLZGE_uxscC45bm9C61wFV_OAj8y6YBq2qaxH2Vt2jIjy_uGIePfWwxaa7DDQoE4k5WbQioiP1hhzmuptSOAM_0tArdsGrMnz8SUUtEZTHLmK077rbZ-Hv741kIxbWME5xXdCQepJPX1djZIumzPY4Ouc47Svxyjj6fX4il7MueCodYcxrmuBqprnvSCpXBaDv8peijN8A"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs font-label-bold text-primary uppercase">Breakfast • 07:30 AM</p>
+<h4 class="font-headline-md text-lg">Berry Power Oats</h4>
+</div>
+<div class="text-right">
+<p class="font-stats-num text-xl">420</p>
+<p class="text-[10px] font-label-bold text-on-surface-variant uppercase">kcal</p>
+</div>
+</div>
+<div class="mt-2 flex gap-md">
+<span class="text-xs font-label-bold text-on-surface-variant">P: 24g</span>
+<span class="text-xs font-label-bold text-on-surface-variant">C: 58g</span>
+<span class="text-xs font-label-bold text-on-surface-variant">F: 12g</span>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-on-surface-variant hover:text-error">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+<!-- Lunch -->
+<div class="p-md flex items-center gap-md group hover:bg-surface-variant/30 transition-colors">
+<div class="w-16 h-16 rounded-lg bg-surface border border-outline-variant overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A high-resolution, technical shot of a chicken breast avocado salad on a dark grey ceramic plate. The salad includes fresh mixed greens, cherry tomatoes, and perfectly sliced avocado. Soft technical red highlights emphasize the protein source. Cinematic dark gym-style aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAI8Nmg28j8ljyffSsS5O4C8miJSGpywClbMu95iPHxGVNFwEZZ6L6Qb3oQ8ar__uXuBABrsio2cmWMW6xcIm4eMjQjLyYCXQ9cjfkNk2yQDHs-5uyeGHCwY_eRLmgj-xUgyds-mrtdD5ngnlUg1FIMJ7NJam9ivYWRDlDUdcsO1RfMvCG4md6Zbz0ql48Ek2fRJzPqEbePjNvrNJPihghJRtaIjwZzUCQ2USRA6ePXVsfGYKDVWDcW"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs font-label-bold text-primary uppercase">Lunch • 12:45 PM</p>
+<h4 class="font-headline-md text-lg">Grilled Chicken & Avocado Salad</h4>
+</div>
+<div class="text-right">
+<p class="font-stats-num text-xl">580</p>
+<p class="text-[10px] font-label-bold text-on-surface-variant uppercase">kcal</p>
+</div>
+</div>
+<div class="mt-2 flex gap-md">
+<span class="text-xs font-label-bold text-on-surface-variant">P: 42g</span>
+<span class="text-xs font-label-bold text-on-surface-variant">C: 18g</span>
+<span class="text-xs font-label-bold text-on-surface-variant">F: 36g</span>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-on-surface-variant hover:text-error">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+<!-- Post-Workout -->
+<div class="p-md flex items-center gap-md group hover:bg-surface-variant/30 transition-colors">
+<div class="w-16 h-16 rounded-lg bg-surface border border-outline-variant overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A sleek black protein shaker bottle with a single scoop of chocolate protein powder nearby on a dark granite countertop. Dramatic lighting highlights the texture of the powder and the matte finish of the bottle. High-performance dark aesthetic with a focus on sports nutrition efficiency." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC817l9Uc_NIGVAPSw9LZaeEpP51hPMMegav3lHfr7-BVyGQFy_4Yq5dy9oKNA_n9jPMV6uqP-R561BdP8e4otWirC_vbIVPgOebBbVqbeJ9yH107UjhTUl3C2J0jzYSyT0dvOw_CLhm1aR62oPwkjBW-p9JmhKG7uAkNlEUQS8Cxf-OTKBoxjqb-dDOHtWUerYfkoacHhOmbK5whyfY88RmTqEr0orObPAxkBbSjEsTosiRhzy6x-M"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs font-label-bold text-primary uppercase">Post-Workout • 04:15 PM</p>
+<h4 class="font-headline-md text-lg">Whey Isolate Shake (Dark Choc)</h4>
+</div>
+<div class="text-right">
+<p class="font-stats-num text-xl">140</p>
+<p class="text-[10px] font-label-bold text-on-surface-variant uppercase">kcal</p>
+</div>
+</div>
+<div class="mt-2 flex gap-md">
+<span class="text-xs font-label-bold text-on-surface-variant">P: 28g</span>
+<span class="text-xs font-label-bold text-on-surface-variant">C: 3g</span>
+<span class="text-xs font-label-bold text-on-surface-variant">F: 1g</span>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-on-surface-variant hover:text-error">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action for Camera -->
+<button class="fixed bottom-lg right-lg w-16 h-16 bg-primary text-on-primary rounded-full shadow-2xl glow-primary flex items-center justify-center active:scale-90 transition-transform z-50">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">add_a_photo</span>
+</button>
+<script>
+        // Micro-interaction for Progress Rings
+        window.addEventListener('DOMContentLoaded', () => {
+            const circle = document.querySelector('.progress-ring-circle');
+            const radius = circle.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+
+            circle.style.strokeDasharray = `${circumference} ${circumference}`;
+            circle.style.strokeDashoffset = circumference;
+
+            function setProgress(percent) {
+                const offset = circumference - (percent / 100 * circumference);
+                circle.style.strokeDashoffset = offset;
+            }
+
+            // Animate on load to 75%
+            setTimeout(() => setProgress(75), 300);
+        });
+
+        // Drop Zone Interaction Simulation
+        const dropZone = document.querySelector('.group.relative');
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('ring-2', 'ring-primary');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('ring-2', 'ring-primary');
+        });
+    </script>
+</body></html>

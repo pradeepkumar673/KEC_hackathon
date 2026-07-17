@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Burn-Ex | Live AI Performance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700;800;900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Montserrat:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+        .glass-panel {
+            background: rgba(22, 22, 22, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent);
+        }
+        .glow-primary {
+            box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+        }
+        .skeleton-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(255, 180, 170, 0.2), transparent);
+            position: absolute;
+            animation: scan 4s linear infinite;
+        }
+        @keyframes scan {
+            from { top: 0%; }
+            to { top: 100%; }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#c0000a",
+                      "primary-fixed-dim": "#ffb4aa",
+                      "outline": "#ad8883",
+                      "on-secondary-fixed-variant": "#46464b",
+                      "surface-container-lowest": "#190a08",
+                      "on-secondary": "#2f3034",
+                      "error": "#ffb4ab",
+                      "on-tertiary": "#003545",
+                      "secondary-container": "#46464b",
+                      "inverse-surface": "#fcdbd6",
+                      "surface-container-high": "#392522",
+                      "on-background": "#fcdbd6",
+                      "on-primary-container": "#5c0002",
+                      "background": "#1f0f0d",
+                      "on-error": "#690005",
+                      "surface-container-highest": "#44302d",
+                      "on-tertiary-fixed-variant": "#004d63",
+                      "surface-container": "#2d1b18",
+                      "secondary-fixed-dim": "#c6c6cb",
+                      "on-tertiary-container": "#002e3c",
+                      "surface-variant": "#44302d",
+                      "tertiary": "#68d3fc",
+                      "secondary": "#c6c6cb",
+                      "surface-container-low": "#291715",
+                      "surface": "#1f0f0d",
+                      "on-primary-fixed": "#410001",
+                      "on-surface-variant": "#e7bdb7",
+                      "on-secondary-fixed": "#1a1b1f",
+                      "tertiary-fixed-dim": "#68d3fc",
+                      "primary-container": "#ff5545",
+                      "tertiary-fixed": "#bbe9ff",
+                      "on-surface": "#fcdbd6",
+                      "surface-dim": "#1f0f0d",
+                      "surface-bright": "#493431",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-container": "#1d9cc3",
+                      "primary-fixed": "#ffdad5",
+                      "on-primary-fixed-variant": "#930005",
+                      "secondary-fixed": "#e3e2e7",
+                      "primary": "#ffb4aa",
+                      "on-secondary-container": "#b5b4ba",
+                      "on-primary": "#690003",
+                      "surface-tint": "#ffb4aa",
+                      "inverse-on-surface": "#402b29",
+                      "outline-variant": "#5d3f3b",
+                      "on-tertiary-fixed": "#001f29",
+                      "error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "base": "8px",
+                      "xl": "80px",
+                      "sm": "12px",
+                      "md": "24px",
+                      "lg": "48px",
+                      "xs": "4px",
+                      "container-max": "1280px",
+                      "gutter": "24px"
+              },
+              "fontFamily": {
+                      "stats-num": ["Montserrat"],
+                      "body-md": ["Inter"],
+                      "headline-lg-mobile": ["Montserrat"],
+                      "display-lg": ["Montserrat"],
+                      "headline-lg": ["Montserrat"],
+                      "headline-md": ["Montserrat"],
+                      "label-bold": ["Inter"],
+                      "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "stats-num": ["24px", {"lineHeight": "1", "fontWeight": "900"}],
+                      "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "800"}],
+                      "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "900"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "800"}],
+                      "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                      "label-bold": ["14px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-hidden">
+<!-- Global Layout Shell -->
+<div class="flex h-screen overflow-hidden">
+<!-- Side Navigation (Predicted Anchor) -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant bg-surface hidden md:flex flex-col py-md z-[60]">
+<div class="px-md mb-lg">
+<h1 class="font-display-lg text-display-lg font-black text-primary tracking-tighter">Burn-Ex</h1>
+<p class="text-on-surface-variant opacity-60 text-xs">Elite Performance</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-bold">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-primary font-bold border-r-4 border-primary bg-gradient-to-r from-primary/10 to-transparent shadow-[0_0_15px_rgba(255,180,170,0.2)]" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-label-bold">Workout</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-label-bold">Progress</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">restaurant</span>
+<span class="font-label-bold">Nutrition</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-bold">History</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full bg-primary-container text-on-primary-container font-label-bold py-3 rounded-lg shadow-lg glow-primary active:scale-95 transition-transform">
+                    Upgrade to Pro
+                </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-64 relative flex flex-col h-screen">
+<!-- Top Bar (Predicted Anchor) -->
+<header class="fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] h-16 z-50 bg-surface/80 backdrop-blur-xl flex justify-between items-center px-md">
+<div class="flex items-center gap-4">
+<div class="md:hidden font-headline-md text-primary font-black">Burn-Ex</div>
+<div class="hidden md:flex bg-surface-container-low px-4 py-1.5 rounded-full border border-outline-variant items-center gap-2">
+<span class="material-symbols-outlined text-primary scale-75">sensors</span>
+<span class="text-xs font-label-bold tracking-widest text-primary uppercase">Live Session</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">search</span>
+</div>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-primary/50">
+<img class="w-full h-full object-cover" data-alt="A close-up portrait of a high-performance athlete with sweat on their brow, illuminated by intense red and orange rim lighting against a pitch-black background. The style is cinematic and technical, emphasizing precision and grit." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXGoxgJNsa8BEBozn8MWm4_O6zmLwrz0MeBwndM1K7fXJa_0I8b4Cf60iVGq171FCWZxYigR8ZztM56NEy4wDCPrf37cG0arWB3oy5iOZzeScz2eh2LytYkCYgn98Y4kgn-CDwN0GpVVMqF5dSEZElhRv5jNLkF7aJHt-y_GS0kjqYJ7w01hcxCg2QkipnR8c3ZIAdtmF9AxKw_MVqTeJcR35e-PED70LSGArTPGkz1x4Gpn6-Nyqq"/>
+</div>
+</div>
+</header>
+<!-- LIVE WORKOUT INTERFACE -->
+<section class="flex-1 relative pt-16 bg-black overflow-hidden group">
+<!-- WEBCAM FEED / BACKGROUND CANVAS -->
+<div class="absolute inset-0 z-0">
+<div class="w-full h-full bg-cover bg-center opacity-70 grayscale contrast-125 transition-all duration-500" data-alt="A wide-angle perspective of a dimly lit, high-tech gym environment where a fit person is performing a deep squat. Superimposed over their body is a glowing orange skeletal overlay with bright circular joints connected by neon lines, simulating MediaPipe pose tracking. The lighting is dominated by deep blacks and vibrant red-orange accents." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB-E7C_6uHX1pLtU1pvh_NxsFCQbPT4szqjLYPlbYf_1Jn7-ytRKFUCwl6NHMPDK9_GK0MhFPQCFNbejTmp8v57dBvzXMrbFzCm_k4QV-D_vmBhKCbGBrcKDzGWFy5cL3ziIBOquMeXqgoDbIuOzqqPJ9E0caH20aPALlLOOiUnXdPrvMnCQrJpcTsrvkzn1E3n5E-OR_KB5HiYrd76c3UO4JrLPJvJy3TavGOp6na9jaz_JDU59FzN')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-surface/40"></div>
+<div class="scanline"></div>
+</div>
+<!-- OVERLAY: HUD TOP LEFT (Timer/Set) -->
+<div class="absolute top-20 left-md z-10 animate-fade-in">
+<div class="glass-panel p-4 rounded-xl border-l-4 border-primary">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary scale-75">timer</span>
+<span class="text-[10px] font-label-bold text-on-surface-variant uppercase tracking-[0.2em]">Current Set Time</span>
+</div>
+<div class="font-stats-num text-stats-num text-primary tracking-wider">00:45</div>
+<div class="mt-2 flex items-center gap-2">
+<span class="text-xs font-bold text-on-surface">SET 3</span>
+<div class="flex gap-1">
+<div class="w-3 h-1.5 bg-primary rounded-full"></div>
+<div class="w-3 h-1.5 bg-primary rounded-full"></div>
+<div class="w-3 h-1.5 bg-primary rounded-full glow-primary"></div>
+<div class="w-3 h-1.5 bg-outline-variant rounded-full"></div>
+<div class="w-3 h-1.5 bg-outline-variant rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- OVERLAY: HUD TOP RIGHT (Form Score) -->
+<div class="absolute top-20 right-md z-10">
+<div class="glass-panel p-4 rounded-xl flex items-center gap-4">
+<div class="relative w-16 h-16 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90">
+<circle class="text-outline-variant" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"></circle>
+<circle class="text-primary glow-primary" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="176" stroke-dashoffset="14" stroke-width="4"></circle>
+</svg>
+<span class="absolute font-stats-num text-sm text-primary">92</span>
+</div>
+<div>
+<span class="text-[10px] font-label-bold text-on-surface-variant uppercase tracking-[0.2em] block mb-1">Form Score</span>
+<div class="text-headline-md font-bold text-on-surface">OPTIMAL</div>
+</div>
+</div>
+</div>
+<!-- OVERLAY: HUD BOTTOM CENTER (Rep Counter) -->
+<div class="absolute bottom-32 left-1/2 -translate-x-1/2 z-20 text-center">
+<div class="flex flex-col items-center">
+<span class="text-xs font-label-bold text-primary uppercase tracking-[0.4em] mb-2 drop-shadow-lg">Repetition Counter</span>
+<div class="font-display-lg text-[120px] leading-none font-black text-on-surface drop-shadow-[0_0_30px_rgba(255,180,170,0.4)] animate-pulse">
+                            12
+                        </div>
+<div class="w-48 h-1 bg-outline-variant mt-4 overflow-hidden rounded-full">
+<div class="w-3/4 h-full bg-primary glow-primary"></div>
+</div>
+</div>
+</div>
+<!-- OVERLAY: RIGHT SIDEBAR (AI Coach Feedback) -->
+<div class="absolute top-1/2 -translate-y-1/2 right-md z-10 w-64">
+<div class="glass-panel p-5 rounded-xl space-y-6">
+<div>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<span class="text-xs font-label-bold text-on-surface uppercase tracking-widest">AI AI COACH</span>
+</div>
+<p class="text-on-surface font-body-lg italic leading-relaxed">
+                                "Excellent depth. Keep your chest up as you ascend."
+                            </p>
+</div>
+<div class="pt-4 border-t border-outline-variant">
+<div class="flex items-center justify-between mb-2">
+<span class="text-[10px] font-label-bold text-on-surface-variant uppercase tracking-widest">Target Groups</span>
+<span class="text-[10px] font-bold text-primary">PEAK ACTIVATION</span>
+</div>
+<div class="relative w-full aspect-[1/1.2] bg-surface-container rounded p-4 flex items-center justify-center overflow-hidden">
+<!-- Muscle SVG Mock (Simplified representation) -->
+<svg class="w-full h-full opacity-60" viewbox="0 0 100 120">
+<path class="text-outline-variant" d="M50 10 C60 10 70 20 70 40 C70 60 60 70 50 70 C40 70 30 60 30 40 C30 20 40 10 50 10" fill="currentColor"></path>
+<!-- Highlighted Quads -->
+<path class="text-primary animate-pulse" d="M35 75 C30 85 30 105 35 115 L45 115 L45 75 Z" fill="currentColor"></path>
+<path class="text-primary animate-pulse" d="M65 75 C70 85 70 105 65 115 L55 115 L55 75 Z" fill="currentColor"></path>
+</svg>
+<div class="absolute bottom-2 left-2 flex gap-1">
+<span class="px-1.5 py-0.5 bg-primary/20 border border-primary/50 text-[8px] text-primary rounded-xs">QUADS</span>
+<span class="px-1.5 py-0.5 bg-primary/20 border border-primary/50 text-[8px] text-primary rounded-xs">GLUTES</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- OVERLAY: BOTTOM CONTROLS -->
+<div class="absolute bottom-8 left-0 w-full z-30 px-md flex justify-between items-center">
+<div class="flex gap-4">
+<div class="glass-panel p-3 rounded-lg flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">favorite</span>
+<div>
+<div class="text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Heart Rate</div>
+<div class="font-stats-num text-sm text-on-surface">148 BPM</div>
+</div>
+</div>
+<div class="glass-panel p-3 rounded-lg flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary">local_fire_department</span>
+<div>
+<div class="text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">Cals Burned</div>
+<div class="font-stats-num text-sm text-on-surface">342 KCAL</div>
+</div>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="h-14 w-14 rounded-full glass-panel flex items-center justify-center text-on-surface hover:text-primary transition-all active:scale-90">
+<span class="material-symbols-outlined text-3xl">pause</span>
+</button>
+<button class="h-14 px-8 rounded-full bg-inverse-primary text-white font-label-bold flex items-center gap-2 shadow-2xl glow-primary hover:brightness-110 transition-all active:scale-95">
+<span class="material-symbols-outlined">stop</span>
+                            END WORKOUT
+                        </button>
+</div>
+<div class="flex items-center gap-4">
+<div class="glass-panel p-2 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-on-surface-variant">volume_up</span>
+</div>
+<div class="glass-panel p-2 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</div>
+</div>
+</div>
+<!-- SKELETON DOTS DECORATION (Absolute) -->
+<div class="absolute inset-0 pointer-events-none z-5 overflow-hidden">
+<div class="absolute left-1/3 top-1/2 w-4 h-4 rounded-full bg-primary skeleton-pulse glow-primary shadow-[0_0_15px_rgba(255,59,48,0.8)]"></div>
+<div class="absolute left-1/3 top-1/3 w-4 h-4 rounded-full bg-primary skeleton-pulse glow-primary shadow-[0_0_15px_rgba(255,59,48,0.8)]"></div>
+<div class="absolute left-[40%] top-[60%] w-4 h-4 rounded-full bg-primary skeleton-pulse glow-primary shadow-[0_0_15px_rgba(255,59,48,0.8)]"></div>
+<div class="absolute left-[25%] top-[65%] w-4 h-4 rounded-full bg-primary skeleton-pulse glow-primary shadow-[0_0_15px_rgba(255,59,48,0.8)]"></div>
+<svg class="absolute inset-0 w-full h-full opacity-40">
+<line class="skeleton-pulse" stroke="#ffb4aa" stroke-width="2" x1="33%" x2="33%" y1="33%" y2="50%"></line>
+<line class="skeleton-pulse" stroke="#ffb4aa" stroke-width="2" x1="33%" x2="40%" y1="50%" y2="60%"></line>
+<line class="skeleton-pulse" stroke="#ffb4aa" stroke-width="2" x1="33%" x2="25%" y1="50%" y2="65%"></line>
+</svg>
+</div>
+</section>
+</main>
+</div>
+<!-- Mobile Navigation Shell (Predicted Anchor) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-low border-t border-outline-variant grid grid-cols-5 h-16 z-50">
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-label-bold">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="text-[10px] font-label-bold">Train</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant relative" href="#">
+<div class="absolute -top-6 w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg glow-primary">
+<span class="material-symbols-outlined text-on-primary">play_arrow</span>
+</div>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="text-[10px] font-label-bold">Stats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-label-bold">Profile</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions for Rep Counter
+        let reps = 12;
+        const repDisplay = document.querySelector('.font-display-lg');
+        
+        setInterval(() => {
+            if(Math.random() > 0.8) {
+                reps++;
+                repDisplay.textContent = reps;
+                repDisplay.classList.remove('animate-pulse');
+                void repDisplay.offsetWidth; // Trigger reflow
+                repDisplay.classList.add('animate-pulse');
+            }
+        }, 3000);
+
+        // Timer Logic
+        let seconds = 45;
+        const timerDisplay = document.querySelector('.font-stats-num');
+        
+        setInterval(() => {
+            seconds++;
+            let mins = Math.floor(seconds / 60);
+            let secs = seconds % 60;
+            timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }, 1000);
+    </script>
+</body></html>
