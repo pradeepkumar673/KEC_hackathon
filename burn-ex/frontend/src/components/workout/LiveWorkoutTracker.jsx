@@ -79,9 +79,39 @@ const EXERCISE_CONFIG = {
     primaryMuscles: ['quadriceps', 'shoulders'],
     secondaryMuscles: ['calves', 'abdominals'],
   },
+  bicep_curl: {
+    label: 'Bicep Curl',
+    primary: [LANDMARKS.LEFT_SHOULDER, LANDMARKS.LEFT_ELBOW, LANDMARKS.LEFT_WRIST],
+    alignment: [LANDMARKS.LEFT_SHOULDER, LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE],
+    topAngle: 155,
+    bottomAngle: 65,
+    idealBottom: 45,
+    alignmentIdeal: 160,
+    depthJoint: LANDMARKS.LEFT_ELBOW,
+    alignmentJoint: LANDMARKS.LEFT_HIP,
+    depthMsg: 'Curl higher to fully engage your biceps',
+    alignmentMsg: 'Keep your elbow close to your side',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['forearms', 'shoulders'],
+  },
+  lunge: {
+    label: 'Lunge',
+    primary: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_ANKLE],
+    alignment: [LANDMARKS.LEFT_SHOULDER, LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE],
+    topAngle: 160,
+    bottomAngle: 105,
+    idealBottom: 85,
+    alignmentIdeal: 145,
+    depthJoint: LANDMARKS.LEFT_KNEE,
+    alignmentJoint: LANDMARKS.LEFT_HIP,
+    depthMsg: 'Lower your back knee with control',
+    alignmentMsg: 'Keep your chest tall over your hips',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'calves'],
+  },
 };
 
-const FALLBACK_MET = { pushup: 8.0, squat: 5.0, jumping_jack: 7.0 };
+const FALLBACK_MET = { pushup: 8.0, squat: 5.0, jumping_jack: 7.0, bicep_curl: 3.5, lunge: 5.5 };
 
 // Fatigue detection
 const FATIGUE_WINDOW = 5;
@@ -116,6 +146,19 @@ const RISK_CONFIG = {
     hipKneeAnkle: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_ANKLE],
     strainThreshold: 140,
     strainMessage: 'Land softly — protect your knees.',
+    hyperextensionAngle: 178,
+  },
+  bicep_curl: {
+    mirrorPrimary: [LANDMARKS.RIGHT_SHOULDER, LANDMARKS.RIGHT_ELBOW, LANDMARKS.RIGHT_WRIST],
+    strainThreshold: 145,
+    strainMessage: 'Avoid swinging your torso — control the curl.',
+    hyperextensionAngle: 178,
+  },
+  lunge: {
+    mirrorPrimary: [LANDMARKS.RIGHT_HIP, LANDMARKS.RIGHT_KNEE, LANDMARKS.RIGHT_ANKLE],
+    hipKneeAnkle: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_ANKLE],
+    strainThreshold: 135,
+    strainMessage: 'Avoid leaning too far forward — keep your torso upright.',
     hyperextensionAngle: 178,
   },
 };
@@ -878,6 +921,7 @@ const LiveWorkoutTracker = () => {
   const levelProgress = sessionXp % 250;
   const calorieGoal = 10;
   const calorieProgress = Math.min(100, (sessionCalories / calorieGoal) * 100);
+  const activationPercent = Math.round(Math.max(0, Math.min(1, muscleActivation)) * 100);
 
   return (
     <div className="fixed inset-0 z-[100] overflow-hidden bg-black text-on-surface">
@@ -1095,7 +1139,7 @@ const LiveWorkoutTracker = () => {
 
             {/* OVERLAY: HUD BOTTOM CENTER (Rep Counter) */}
             {isTracking && (
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 text-center animate-fade-in">
+              <div className="absolute bottom-32 left-1/2 z-20 -translate-x-1/2 text-center animate-fade-in md:bottom-28">
                 <div className="flex flex-col items-center">
                   <span className="text-[10px] font-label-bold text-primary uppercase tracking-[0.3em] mb-1 drop-shadow-md">Reps</span>
                   <div className="font-display-lg text-6xl md:text-7xl leading-none font-black text-on-surface drop-shadow-[0_0_20px_rgba(255,180,170,0.4)] animate-pulse">
@@ -1110,7 +1154,7 @@ const LiveWorkoutTracker = () => {
             
             {/* OVERLAY: HUD BOTTOM LEFT (BPM / Calories) */}
             {isTracking && (
-              <div className="absolute bottom-4 left-4 z-10 flex gap-2">
+              <div className="absolute bottom-28 left-4 z-20 flex gap-2 md:bottom-24">
                 <div className="glass-panel p-2.5 rounded-lg flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary text-sm animate-pulse">favorite</span>
                   <div>
@@ -1130,7 +1174,7 @@ const LiveWorkoutTracker = () => {
             
             {/* OVERLAY: HUD BOTTOM RIGHT (Fatigue & Injury Risk Alerts) */}
             {isTracking && (
-              <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1.5 items-end">
+              <div className="absolute bottom-28 right-4 z-20 flex flex-col items-end gap-1.5 md:bottom-24">
                 {fatigueScore > 0 && (
                   <div className={`glass-panel px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-wider ${
                     fatigueLevel === 'high' ? 'text-primary border-l-2 border-primary' : 'text-tertiary border-l-2 border-tertiary'
@@ -1153,13 +1197,14 @@ const LiveWorkoutTracker = () => {
               <aside className="absolute left-4 top-1/2 z-20 hidden w-48 -translate-y-1/2 rounded-2xl border border-white/15 bg-[#241715]/85 p-3 shadow-2xl backdrop-blur-xl md:block">
                 <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-2">
                   <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Muscle targeting</span>
-                  <span className="text-[10px] font-bold text-primary">{Math.round(muscleActivation)}%</span>
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-primary"><span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />{activationPercent}% live</span>
                 </div>
                 <div className="muscle-map rounded-xl p-1.5">
                   <MuscleActivationOverlay
                     primaryMuscles={EXERCISE_CONFIG[exerciseType]?.primaryMuscles || []}
                     secondaryMuscles={EXERCISE_CONFIG[exerciseType]?.secondaryMuscles || []}
                     activation={muscleActivation}
+                    key={exerciseType}
                   />
                 </div>
                 <div className="mt-2 space-y-1 text-[8px] uppercase tracking-wide">
@@ -1177,7 +1222,7 @@ const LiveWorkoutTracker = () => {
           </div>
 
           {/* Controls Bar beneath the Viewport */}
-          <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 rounded-t-3xl border-t border-white/10 bg-black/40 p-4 pb-6 backdrop-blur-lg md:px-12">
+          <div className="absolute inset-x-0 bottom-0 z-30 flex min-h-20 items-center justify-between gap-4 rounded-t-3xl border-t border-white/10 bg-black/75 p-3 backdrop-blur-sm md:px-12">
             <div className="flex gap-2">
               {!isTracking ? (
                 <button 
@@ -1344,7 +1389,7 @@ const LiveWorkoutTracker = () => {
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[10px] font-label-bold text-on-surface-variant uppercase tracking-widest">Target Groups</span>
                 <span className="text-[10px] font-bold text-primary tracking-wider uppercase">
-                  {isTracking ? `${Math.round(muscleActivation)}% Activation` : 'Idle'}
+                  {isTracking ? `${activationPercent}% Activation` : 'Idle'}
                 </span>
               </div>
               

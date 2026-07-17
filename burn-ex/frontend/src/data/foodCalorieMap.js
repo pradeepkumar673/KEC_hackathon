@@ -33,9 +33,24 @@ const FOOD_CALORIE_MAP = {
 
 const DEFAULT_ESTIMATE = 250; // fallback when the recognized label has no mapping
 
+// Typical plated portions. A photo has no reliable physical scale, so this is
+// shown as a serving estimate rather than an exact measurement.
+const FOOD_SERVING_GRAMS = {
+  'fried rice': 200, 'chicken curry': 180, pho: 350, falafel: 120, ramen: 400,
+  pizza: 150, burger: 220, sushi: 180, salad: 220, pasta: 250, spaghetti: 250,
+  sandwich: 180, rice: 200, noodles: 250, soup: 300, chicken: 180, steak: 180,
+  salmon: 170, banana: 120, apple: 180, orange: 150, fries: 150, default: 200,
+};
+
 export const estimateCaloriesForLabel = (label) => {
   const key = label.toLowerCase().replace(/_/g, ' ').trim();
   return FOOD_CALORIE_MAP[key] ?? DEFAULT_ESTIMATE;
+};
+
+export const estimateServingGrams = (label) => {
+  const key = label.toLowerCase().replace(/[_-]/g, ' ').trim();
+  const match = Object.keys(FOOD_SERVING_GRAMS).find((food) => food !== 'default' && key.includes(food));
+  return FOOD_SERVING_GRAMS[match ?? 'default'];
 };
 
 export default FOOD_CALORIE_MAP;

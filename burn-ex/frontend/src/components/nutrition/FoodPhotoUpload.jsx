@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
-import { estimateCaloriesForLabel } from '../../data/foodCalorieMap';
+import { estimateCaloriesForLabel, estimateServingGrams } from '../../data/foodCalorieMap';
 import { analyzeFoodPhoto, fetchAiStatus } from '../../services/aiService';
 import { compressImageForUpload } from '../../utils/imageCompress';
 
@@ -51,6 +51,7 @@ const FoodPhotoUpload = ({ onEstimate }) => {
         label,
         confidence: Math.round(p.probability * 100) / 100,
         calories: estimateCaloriesForLabel(label),
+        estimatedGrams: estimateServingGrams(label),
       };
     });
   };
@@ -127,7 +128,10 @@ const FoodPhotoUpload = ({ onEstimate }) => {
         setError('No food matches found — try a clearer photo or log manually.');
         setPhase('idle');
       } else {
-        setPredictions(results);
+        setPredictions(results.map((prediction) => ({
+          ...prediction,
+          estimatedGrams: prediction.estimatedGrams ?? estimateServingGrams(prediction.label),
+        })));
         setPhase('done');
       }
     } catch (err) {
@@ -144,6 +148,7 @@ const FoodPhotoUpload = ({ onEstimate }) => {
         label: prediction.label,
         confidence: prediction.confidence,
         calories: prediction.calories,
+        estimatedGrams: prediction.estimatedGrams,
         source: 'photo',
       });
       setPredictions([]);
@@ -229,7 +234,7 @@ const FoodPhotoUpload = ({ onEstimate }) => {
 
       {predictions.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-gray-400">Tap the closest match:</p>
+          <p className="text-xs text-gray-400">Tap the closest match. Plate weight is a visual serving estimate.</p>
           {predictions.map((p) => (
             <button
               key={`${p.label}-${p.confidence}`}
@@ -242,7 +247,7 @@ const FoodPhotoUpload = ({ onEstimate }) => {
             >
               <span className="text-sm capitalize">{p.label}</span>
               <span className="text-xs text-gray-400">
-                {Math.round(p.confidence <= 1 ? p.confidence * 100 : p.confidence)}% · ~{p.calories} kcal
+                {Math.round(p.confidence <= 1 ? p.confidence * 100 : p.confidence)}% · ~{p.estimatedGrams} g · ~{p.calories} kcal
               </span>
             </button>
           ))}

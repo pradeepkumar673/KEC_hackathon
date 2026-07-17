@@ -10,17 +10,17 @@ const WeeklyComparisonChart = ({ byExercise }) => {
         <div key={type}>
           <div className="flex justify-between text-xs mb-1">
             <span className="capitalize text-gray-300">{type}</span>
-            <span className={changePct >= 0 ? 'text-green-400' : 'text-red-400'}>
+            <span className={changePct >= 0 ? 'text-zinc-300' : 'text-zinc-500'}>
               {changePct >= 0 ? '+' : ''}{changePct}% vs last week
             </span>
           </div>
           <div className="flex items-end gap-2 h-16">
             <div className="flex-1 flex flex-col items-center justify-end h-full">
-              <div className="w-full bg-gray-600 rounded-t" style={{ height: `${(previous / max) * 100}%` }} />
+              <div className="w-full bg-zinc-700 rounded-t" style={{ height: `${(previous / max) * 100}%` }} />
               <span className="text-[10px] text-gray-500 mt-1">Last: {previous}</span>
             </div>
             <div className="flex-1 flex flex-col items-center justify-end h-full">
-              <div className="w-full bg-orange-500 rounded-t" style={{ height: `${(current / max) * 100}%` }} />
+              <div className="w-full bg-zinc-200 rounded-t" style={{ height: `${(current / max) * 100}%` }} />
               <span className="text-[10px] text-gray-400 mt-1">This: {current}</span>
             </div>
           </div>

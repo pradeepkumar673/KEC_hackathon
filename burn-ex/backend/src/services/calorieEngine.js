@@ -4,6 +4,9 @@ import calorieRegressionModel from './calorieRegressionModel.js';
 const FALLBACK_MET = {
   pushup: 8.0,
   squat: 5.0,
+  jumping_jack: 7.0,
+  bicep_curl: 3.5,
+  lunge: 5.5,
 };
 
 /**

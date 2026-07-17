@@ -61,16 +61,16 @@ export const getToday = asyncHandler(async (req, res) => {
   });
 });
 
-// @route POST /api/nutrition/log (protected)  body: { label, calories, confidence?, source? }
+// @route POST /api/nutrition/log (protected)  body: { label, calories, estimatedGrams?, confidence?, source? }
 export const logFood = asyncHandler(async (req, res) => {
-  const { label, calories, confidence, source = 'manual' } = req.body;
+  const { label, calories, estimatedGrams, confidence, source = 'manual' } = req.body;
   if (!label || calories === undefined) {
     res.status(400);
     throw new Error('label and calories are required');
   }
 
   const log = await getOrCreateTodayLog(req.user);
-  log.entries.push({ label, calories, confidence, source, loggedAt: new Date() });
+  log.entries.push({ label, calories, estimatedGrams, confidence, source, loggedAt: new Date() });
   await log.save();
 
   res.status(201).json(log);

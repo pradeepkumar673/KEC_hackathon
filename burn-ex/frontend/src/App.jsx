@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import PublicRoute from './components/common/PublicRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -19,6 +20,7 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        <LanguageProvider>
         <AuthProvider>
           <OfflineBanner />
           <Routes>
@@ -37,6 +39,7 @@ function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </AuthProvider>
+        </LanguageProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );

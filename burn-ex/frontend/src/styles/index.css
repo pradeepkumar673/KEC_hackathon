@@ -100,3 +100,14 @@
   background: #5d3f3b;
   border-radius: 10px;
 }
+
+/* Neutral analytics surface: data should carry the visual emphasis, not red chrome. */
+.progress-neutral .glass-panel {
+  background: linear-gradient(145deg, rgba(24, 24, 27, 0.96), rgba(9, 9, 11, 0.98));
+  border-color: rgba(113, 113, 122, 0.36);
+  box-shadow: none;
+}
+
+.progress-neutral .text-primary { color: #d4d4d8; }
+.progress-neutral .bg-primary\/10 { background-color: rgba(212, 212, 216, 0.1); }
+.progress-neutral .border-primary\/20, .progress-neutral .border-primary\/25 { border-color: rgba(212, 212, 216, 0.22); }

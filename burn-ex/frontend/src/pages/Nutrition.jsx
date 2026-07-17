@@ -239,7 +239,7 @@ const Nutrition = () => {
                   <div key={`${entry.label}-${i}`} className="flex items-center justify-between bg-surface border border-outline-variant rounded-xl p-3 shadow-sm">
                     <div>
                       <p className="text-xs font-bold text-on-surface capitalize">{entry.label}</p>
-                      <p className="text-[9px] text-on-surface-variant font-semibold mt-0.5">{entry.calories} kcal · {entry.source === 'photo' ? '📷 AI Vision' : '✍️ Manual'}</p>
+                      <p className="text-[9px] text-on-surface-variant font-semibold mt-0.5">{entry.estimatedGrams ? `~${entry.estimatedGrams} g · ` : ''}{entry.calories} kcal · {entry.source === 'photo' ? '📷 AI Vision' : '✍️ Manual'}</p>
                     </div>
                     <button 
                       onClick={() => handleDelete(i)} 

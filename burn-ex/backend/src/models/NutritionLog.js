@@ -5,6 +5,7 @@ const foodEntrySchema = new mongoose.Schema(
     label: { type: String, required: true },
     confidence: { type: Number },
     calories: { type: Number, required: true },
+    estimatedGrams: { type: Number },
     source: { type: String, enum: ['photo', 'manual'], default: 'manual' },
     loggedAt: { type: Date, default: Date.now },
   },
