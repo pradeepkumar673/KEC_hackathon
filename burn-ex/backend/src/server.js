@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
+import exerciseRoutes from './routes/exerciseRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -17,6 +18,8 @@ app.use(morgan('dev'));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/exercises', exerciseRoutes);
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.get('/', (req, res) => {
   res.send('Burn-Ex API is running');
