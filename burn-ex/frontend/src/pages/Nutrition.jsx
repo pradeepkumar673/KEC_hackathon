@@ -13,6 +13,7 @@ const Nutrition = () => {
   const [manualCalories, setManualCalories] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [aiPoweredSuggestions, setAiPoweredSuggestions] = useState(false);
 
   const bmr = calculateBMR({ weightKg: user?.weight, heightCm: user?.height, age: user?.age, gender: user?.gender });
   const tdee = calculateTDEE(bmr, user?.activityLevel);
@@ -33,6 +34,7 @@ const Nutrition = () => {
       setSuggestionsLoading(true);
       const data = await fetchSuggestions();
       setSuggestions(data.suggestions ?? []);
+      setAiPoweredSuggestions(Boolean(data.aiPowered));
     } catch {
       // non-critical — suggestions are a bonus panel
     } finally {
@@ -236,6 +238,11 @@ const Nutrition = () => {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-yellow-400">sparkles</span>
               <h3 className="text-lg font-bold text-white">Dietary Intelligence</h3>
+              {aiPoweredSuggestions && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                  Groq AI
+                </span>
+              )}
             </div>
             {suggestionsLoading ? (
               <div className="flex items-center gap-2 text-xs text-gray-400">

@@ -2,15 +2,24 @@ import { useRef, useState, useCallback } from 'react';
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
 import { estimateCaloriesForLabel } from '../../data/foodCalorieMap';
+import { analyzeFoodPhoto } from '../../services/aiService';
 
-let cachedModel = null; // module-level cache — download/warm up once per session
+let cachedModel = null;
 
-const loadModel = async () => {
+const loadMobileNet = async () => {
   if (cachedModel) return cachedModel;
   await tf.ready();
   cachedModel = await mobilenet.load({ version: 2, alpha: 1.0 });
   return cachedModel;
 };
+
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 const FoodPhotoUpload = ({ onEstimate }) => {
   const imageRef = useRef(null);
@@ -18,9 +27,22 @@ const FoodPhotoUpload = ({ onEstimate }) => {
 
   const [previewUrl, setPreviewUrl] = useState(null);
   const [predictions, setPredictions] = useState([]);
-  const [modelLoading, setModelLoading] = useState(false);
   const [classifying, setClassifying] = useState(false);
   const [error, setError] = useState('');
+  const [visionSource, setVisionSource] = useState('');
+
+  const runClientMobileNet = async (img) => {
+    const model = await loadMobileNet();
+    const results = await model.classify(img, 5);
+    return results.map((p) => {
+      const label = p.className.split(',')[0];
+      return {
+        label,
+        confidence: Math.round(p.probability * 100) / 100,
+        calories: estimateCaloriesForLabel(label),
+      };
+    });
+  };
 
   const handleFileChange = useCallback(async (e) => {
     const file = e.target.files?.[0];
@@ -28,40 +50,47 @@ const FoodPhotoUpload = ({ onEstimate }) => {
 
     setError('');
     setPredictions([]);
+    setVisionSource('');
     setPreviewUrl(URL.createObjectURL(file));
 
     requestAnimationFrame(async () => {
+      setClassifying(true);
       try {
-        setModelLoading(true);
-        const model = await loadModel();
-        setModelLoading(false);
-
-        setClassifying(true);
         const img = imageRef.current;
         if (!img.complete) {
           await new Promise((resolve) => { img.onload = resolve; });
         }
-        const results = await model.classify(img, 5);
+
+        let results = [];
+        try {
+          const dataUrl = await fileToBase64(file);
+          const hf = await analyzeFoodPhoto(dataUrl);
+          results = hf.predictions ?? [];
+          if (results.length) setVisionSource('Hugging Face (food model)');
+        } catch {
+          results = await runClientMobileNet(img);
+          setVisionSource('MobileNet (browser fallback)');
+        }
+
         setPredictions(results);
-      } catch (err) {
+      } catch {
         setError('Could not classify this photo. Try a clearer, well-lit shot.');
       } finally {
-        setModelLoading(false);
         setClassifying(false);
       }
     });
   }, []);
 
   const handleConfirm = (prediction) => {
-    const label = prediction.className.split(',')[0];
     onEstimate({
-      label,
-      confidence: Math.round(prediction.probability * 100) / 100,
-      calories: estimateCaloriesForLabel(label),
+      label: prediction.label,
+      confidence: prediction.confidence,
+      calories: prediction.calories,
       source: 'photo',
     });
     setPredictions([]);
     setPreviewUrl(null);
+    setVisionSource('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -90,29 +119,28 @@ const FoodPhotoUpload = ({ onEstimate }) => {
         />
       )}
 
-      {modelLoading && <p className="text-xs text-gray-400">Loading MobileNetV2 (first time only)...</p>}
-      {classifying && <p className="text-xs text-gray-400">Analyzing photo...</p>}
+      {classifying && <p className="text-xs text-gray-400">Analyzing with AI vision...</p>}
+      {visionSource && !classifying && (
+        <p className="text-xs text-green-400 mb-2">✓ {visionSource}</p>
+      )}
       {error && <p className="text-xs text-red-400">{error}</p>}
 
       {predictions.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs text-gray-400">Tap the closest match:</p>
-          {predictions.map((p) => {
-            const label = p.className.split(',')[0];
-            return (
-              <button
-                key={p.className}
-                onClick={() => handleConfirm(p)}
-                className="w-full flex items-center justify-between bg-gray-900/60 hover:bg-gray-700
-                           border border-gray-700 rounded-lg px-3 py-2 text-left transition"
-              >
-                <span className="text-sm capitalize">{label}</span>
-                <span className="text-xs text-gray-400">
-                  {Math.round(p.probability * 100)}% match · ~{estimateCaloriesForLabel(label)} kcal
-                </span>
-              </button>
-            );
-          })}
+          {predictions.map((p) => (
+            <button
+              key={`${p.label}-${p.confidence}`}
+              onClick={() => handleConfirm(p)}
+              className="w-full flex items-center justify-between bg-gray-900/60 hover:bg-gray-700
+                         border border-gray-700 rounded-lg px-3 py-2 text-left transition"
+            >
+              <span className="text-sm capitalize">{p.label}</span>
+              <span className="text-xs text-gray-400">
+                {Math.round(p.confidence * 100)}% match · ~{p.calories} kcal
+              </span>
+            </button>
+          ))}
         </div>
       )}
     </div>

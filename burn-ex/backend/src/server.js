@@ -9,6 +9,7 @@ import exerciseRoutes from './routes/exerciseRoutes.js';
 import workoutRoutes from './routes/workoutRoutes.js';
 import nutritionRoutes from './routes/nutritionRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -22,13 +23,14 @@ app.use(cors({
 }));
 app.use(helmet());
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/progress', progressRoutes);
+app.use('/api/ai', aiRoutes);
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.get('/', (req, res) => {

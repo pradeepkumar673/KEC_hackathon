@@ -2,6 +2,10 @@ import NutritionLog from '../models/NutritionLog.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import { calculateBMR, calculateTDEE, calculateCalorieGoal } from '../services/nutritionEngine.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import {
+  generateNutritionSuggestions,
+  isGroqConfigured,
+} from '../services/groqService.js';
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
@@ -80,14 +84,33 @@ export const deleteFoodEntry = asyncHandler(async (req, res) => {
   res.json(log);
 });
 
-// @route GET /api/nutrition/suggestions (protected)
+// @route GET /api/nutrition/suggestions (protected) — rule-based fallback; prefer /api/ai/nutrition/suggestions for Groq
 export const getSuggestions = asyncHandler(async (req, res) => {
   const log = await getOrCreateTodayLog(req.user);
   const caloriesConsumed = log.entries.reduce((sum, e) => sum + e.calories, 0);
   const caloriesBurned = await caloriesBurnedToday(req.user._id, log.date);
   const remaining = log.calorieGoal + caloriesBurned - caloriesConsumed;
 
-  res.json({ remaining, suggestions: buildSuggestions({ remaining, calorieGoal: log.calorieGoal, entries: log.entries, goal: req.user.goal }) });
+  if (isGroqConfigured()) {
+    const groqTips = await generateNutritionSuggestions({
+      name: req.user.name,
+      goal: req.user.goal,
+      remaining,
+      calorieGoal: log.calorieGoal,
+      caloriesConsumed,
+      caloriesBurned,
+      entries: log.entries,
+    });
+    if (groqTips?.length) {
+      return res.json({ remaining, suggestions: groqTips, aiPowered: true });
+    }
+  }
+
+  res.json({
+    remaining,
+    suggestions: buildSuggestions({ remaining, calorieGoal: log.calorieGoal, entries: log.entries, goal: req.user.goal }),
+    aiPowered: false,
+  });
 });
 
 const buildSuggestions = ({ remaining, calorieGoal, entries, goal }) => {

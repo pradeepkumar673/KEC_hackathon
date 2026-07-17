@@ -9,6 +9,7 @@ import { fetchReadinessScore } from '../../services/progressService';
 import MuscleActivationOverlay from './MuscleActivationOverlay';
 import { predictMultiplier } from '../../ml/calorieModel';
 import { predictFormScore } from '../../ml/formModel';
+import { fetchAiStatus, fetchWorkoutSummary, fetchFormTip } from '../../services/aiService';
 
 
 // ============================================================
@@ -247,6 +248,7 @@ const LiveWorkoutTracker = () => {
 
   // Injury risk refs
   const riskEmaRef = useRef(0);
+  const lastGroqTipRepRef = useRef(0);
 
   // --- State ---
   const [exerciseType, setExerciseType] = useState('pushup');
@@ -274,6 +276,10 @@ const LiveWorkoutTracker = () => {
   const [riskLevel, setRiskLevel] = useState('low');
   const [riskFactors, setRiskFactors] = useState([]);
   const [modelsReady, setModelsReady] = useState(false);
+  const [groqEnabled, setGroqEnabled] = useState(false);
+  const [aiSummary, setAiSummary] = useState('');
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [coachTip, setCoachTip] = useState('');
 
   // Computed
   const overallScore = useMemo(() => {
@@ -286,21 +292,26 @@ const LiveWorkoutTracker = () => {
   useEffect(() => { repsRef.current = reps; }, [reps]);
   useEffect(() => { formScoresRef.current = repScores; }, [repScores]);
 
-  // --- Load ML models on mount ---
+  // --- Load rule-based scoring + AI status on mount ---
   useEffect(() => {
-    const loadModels = async () => {
+    const init = async () => {
       try {
         await Promise.all([
-          import('../../ml/calorieModel').then(m => m.loadCalorieModel()),
-          import('../../ml/formModel').then(m => m.loadFormModel())
+          import('../../ml/calorieModel').then((m) => m.loadCalorieModel()),
+          import('../../ml/formModel').then((m) => m.loadFormModel()),
         ]);
         setModelsReady(true);
-        console.log('✅ All ML models loaded');
-      } catch (e) {
-        console.warn('⚠️ Some models failed to load, using fallbacks', e);
+      } catch {
+        setModelsReady(true);
+      }
+      try {
+        const status = await fetchAiStatus();
+        setGroqEnabled(Boolean(status?.groq));
+      } catch {
+        setGroqEnabled(false);
       }
     };
-    loadModels();
+    init();
   }, []);
 
   // --- Voice feedback ---
@@ -352,6 +363,29 @@ const LiveWorkoutTracker = () => {
       return level;
     });
   }, [speak]);
+
+  const requestGroqFormTip = useCallback(
+    async (repNum, repScore, issueMsg) => {
+      if (!groqEnabled) return;
+      if (repNum - lastGroqTipRepRef.current < 3 && repScore >= 65) return;
+      lastGroqTipRepRef.current = repNum;
+      try {
+        const { tip } = await fetchFormTip({
+          exerciseLabel: EXERCISE_CONFIG[exerciseTypeRef.current]?.label,
+          lastRepScore: repScore,
+          formIssue: issueMsg,
+          fatigueLevel,
+        });
+        if (tip) {
+          setCoachTip(tip);
+          speak(tip, { cooldownMs: 8000 });
+        }
+      } catch {
+        // Groq optional — local voice cues still work
+      }
+    },
+    [groqEnabled, speak, fatigueLevel]
+  );
 
   // --- Exercise switch reset ---
   useEffect(() => {
@@ -499,7 +533,7 @@ const LiveWorkoutTracker = () => {
           const depthScore = scoreDepth(minAngleRef.current, config.bottomAngle, config.idealBottom);
           const alignScore = scoreAlignment(minAlignmentRef.current, config.alignmentIdeal);
 
-          // Use ML model for form score with fallback
+          // Rule-based form score (depth + alignment)
           let repScore;
           try {
             const mlScore = await predictFormScore(landmarks, { depthScore, alignScore });
@@ -518,6 +552,9 @@ const LiveWorkoutTracker = () => {
           registerRepCompletion();
           setFeedback(repScore >= 80 ? 'Great form!' : repScore >= 60 ? 'Good rep — check your form tips.' : 'Form needs work — focus on technique.');
 
+          const completedRep = repsRef.current + 1;
+          requestGroqFormTip(completedRep, repScore, issue?.message);
+
           minAngleRef.current = Infinity;
           minAlignmentRef.current = 180;
         } else {
@@ -532,7 +569,7 @@ const LiveWorkoutTracker = () => {
         setFeedback(`Now push back up.`);
       }
     },
-    [calculateAngle, speak, registerRepCompletion, computeInjuryRisk, fatigueScore]
+    [calculateAngle, speak, registerRepCompletion, computeInjuryRisk, fatigueScore, requestGroqFormTip]
   );
 
   // --- Auto detection ---
@@ -683,6 +720,9 @@ const LiveWorkoutTracker = () => {
     setFeedback('Get in position...');
     setSaveState('idle');
     setSavedSession(null);
+    setAiSummary('');
+    setCoachTip('');
+    lastGroqTipRepRef.current = 0;
     if (!videoRef.current || !poseRef.current) return;
 
     try {
@@ -717,6 +757,7 @@ const LiveWorkoutTracker = () => {
 
     if (repsRef.current > 0 && seconds > 0) {
       setSaveState('saving');
+      setAiSummaryLoading(true);
       try {
         const saved = await saveWorkoutSession({
           exerciseType,
@@ -727,8 +768,26 @@ const LiveWorkoutTracker = () => {
         setSavedSession(saved);
         setSaveState('saved');
         speak('Session saved successfully!', { priority: true });
+
+        try {
+          const { summary } = await fetchWorkoutSummary({
+            exerciseType,
+            exerciseLabel: EXERCISE_CONFIG[exerciseType]?.label,
+            reps: repsRef.current,
+            durationSeconds: seconds,
+            formScore: overallScore ?? undefined,
+            fatigueScore,
+            injuryRisk,
+            riskFactors,
+          });
+          if (summary) setAiSummary(summary);
+        } catch {
+          setAiSummary('Great session — keep building consistency and focus on form on every rep.');
+        }
       } catch {
         setSaveState('error');
+      } finally {
+        setAiSummaryLoading(false);
       }
     }
   };
@@ -743,6 +802,9 @@ const LiveWorkoutTracker = () => {
     setLiveCalories(0);
     setSaveState('idle');
     setSavedSession(null);
+    setAiSummary('');
+    setCoachTip('');
+    lastGroqTipRepRef.current = 0;
     repStateRef.current = 'up';
     minAngleRef.current = Infinity;
     minAlignmentRef.current = 180;
@@ -785,7 +847,7 @@ const LiveWorkoutTracker = () => {
           {modelsReady && (
             <span className="text-xs text-green-400 flex items-center gap-1">
               <span className="w-2 h-2 bg-green-400 rounded-full inline-block"></span>
-              AI Ready
+              AI Coach Ready{groqEnabled ? ' · Groq' : ''}
             </span>
           )}
           <button
@@ -947,6 +1009,11 @@ const LiveWorkoutTracker = () => {
       )}
 
       {/* Feedback */}
+      {coachTip && (
+        <div className="bg-blue-500/10 border border-blue-500/30 text-blue-300 text-sm rounded-lg p-3 mb-4 text-center">
+          💬 AI Coach: {coachTip}
+        </div>
+      )}
       <p className="text-sm text-gray-400 mb-4 text-center min-h-[20px]">{feedback}</p>
 
       {/* Save state */}
@@ -956,6 +1023,15 @@ const LiveWorkoutTracker = () => {
       {saveState === 'saved' && savedSession && (
         <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg p-3 mb-4 text-center">
           ✅ Session saved — {savedSession.calories} kcal recorded to your history.
+        </div>
+      )}
+      {aiSummaryLoading && (
+        <p className="text-sm text-center text-gray-400 mb-4">Generating AI workout summary...</p>
+      )}
+      {aiSummary && !aiSummaryLoading && (
+        <div className="bg-orange-500/10 border border-orange-500/30 text-orange-100 text-sm rounded-lg p-4 mb-4">
+          <p className="text-xs font-semibold text-orange-400 mb-2">Post-workout AI summary</p>
+          <p>{aiSummary}</p>
         </div>
       )}
       {saveState === 'error' && (
