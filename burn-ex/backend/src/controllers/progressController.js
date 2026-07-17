@@ -137,3 +137,57 @@ export const getMuscleHeatmap = async (req, res) => {
     res.status(500).json({ message: 'Failed to build muscle heatmap', error: error.message });
   }
 };
+
+const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+// @route GET /api/progress/readiness (protected)
+export const getReadinessScore = async (req, res) => {
+  try {
+    const since = daysAgo(6);
+    const sessions = await WorkoutSession.find({ user: req.user._id, createdAt: { $gte: since } }).sort({ createdAt: 1 });
+
+    if (sessions.length === 0) {
+      return res.json({ score: 85, level: 'high', factors: ["No recent training data — you're clear to train."] });
+    }
+
+    const yesterday = dateKey(daysAgo(1));
+    const yesterdayVolume = sessions.filter((s) => dateKey(s.createdAt) === yesterday).reduce((sum, s) => sum + s.reps, 0);
+
+    const trainedDates = new Set(sessions.map((s) => dateKey(s.createdAt)));
+    let streak = 0;
+    for (let i = 1; i <= 14; i++) {
+      if (trainedDates.has(dateKey(daysAgo(i)))) streak++;
+      else break;
+    }
+
+    const scored = sessions.filter((s) => s.formScore != null);
+    let formTrendDelta = 0;
+    if (scored.length >= 4) {
+      const half = Math.floor(scored.length / 2);
+      formTrendDelta = avg(scored.slice(half).map((s) => s.formScore)) - avg(scored.slice(0, half).map((s) => s.formScore));
+    }
+
+    const daysSinceLast = Math.round((Date.now() - sessions[sessions.length - 1].createdAt.getTime()) / 86400000);
+
+    let score = 100;
+    const factors = [];
+
+    if (yesterdayVolume > 60) { score -= 20; factors.push('High training volume yesterday — your body may still be recovering.'); }
+    else if (yesterdayVolume > 30) { score -= 10; factors.push('Moderate volume yesterday.'); }
+
+    if (streak >= 5) { score -= 15; factors.push(`${streak}-day training streak — consider a rest day soon.`); }
+    else if (streak >= 3) { score -= 5; }
+
+    if (formTrendDelta < -8) { score -= 15; factors.push('Form scores have been trending down — a sign of accumulated fatigue.'); }
+
+    if (daysSinceLast >= 2) { score += 10; factors.push("Well-rested — it's been a couple of days since your last session."); }
+
+    score = Math.max(10, Math.min(100, Math.round(score)));
+    const level = score >= 70 ? 'high' : score >= 45 ? 'moderate' : 'low';
+    if (factors.length === 0) factors.push('No major red flags — normal training day.');
+
+    res.json({ score, level, factors, streak, yesterdayVolume, daysSinceLast });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to calculate readiness score', error: error.message });
+  }
+};

@@ -5,6 +5,7 @@ import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { POSE_CONNECTIONS } from '@mediapipe/pose';
 import { useAuth } from '../../context/AuthContext';
 import { fetchMetValues, saveWorkoutSession } from '../../services/workoutService';
+import { fetchReadinessScore } from '../../services/progressService';
 import MuscleActivationOverlay from './MuscleActivationOverlay';
 
 const LANDMARKS = {
@@ -67,6 +68,34 @@ const movingAverage = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
 // ── Auto exercise recognition config ────────────────────────────────────
 const RECOGNITION_WINDOW = 15;    // frames to vote over
 const RECOGNITION_AGREEMENT = 10; // votes needed to commit a switch
+
+// ── Injury risk config ──────────────────────────────────────────────────
+const VALGUS_THRESHOLD = 0.035;      // normalized x-deviation of knee from hip-ankle line
+const ASYMMETRY_THRESHOLD_DEG = 12;  // left/right angle difference that flags compensation
+const RISK_EMA_ALPHA = 0.3;
+
+const RISK_CONFIG = {
+  pushup: {
+    mirrorPrimary: [LANDMARKS.RIGHT_SHOULDER, LANDMARKS.RIGHT_ELBOW, LANDMARKS.RIGHT_WRIST],
+    strainThreshold: 155,   // stricter than the coaching alignmentIdeal — flags real strain, not just poor form
+    strainMessage: 'Hips sagging — brace your core to protect your lower back.',
+    hyperextensionAngle: 178,
+  },
+  squat: {
+    mirrorPrimary: [LANDMARKS.RIGHT_HIP, LANDMARKS.RIGHT_KNEE, LANDMARKS.RIGHT_ANKLE],
+    hipKneeAnkle: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_ANKLE],
+    strainThreshold: 130,
+    strainMessage: 'Excessive forward lean — keep your chest tall.',
+    hyperextensionAngle: 178,
+  },
+};
+
+const detectKneeValgus = (hip, knee, ankle) => {
+  if (!hip || !knee || !ankle || ankle.y === hip.y) return false;
+  const t = (knee.y - hip.y) / (ankle.y - hip.y);
+  const expectedKneeX = hip.x + (ankle.x - hip.x) * t;
+  return knee.x - expectedKneeX < -VALGUS_THRESHOLD; // knee tracking medial to the hip-ankle line
+};
 
 const classifyPose = (landmarks) => {
   const shoulder = landmarks[LANDMARKS.LEFT_SHOULDER];
@@ -181,6 +210,11 @@ const LiveWorkoutTracker = () => {
   // Auto recognition refs
   const poseClassBufferRef = useRef([]);
 
+  const riskEmaRef = useRef(0);
+  const [injuryRisk, setInjuryRisk] = useState(0);          // 0–100
+  const [riskLevel, setRiskLevel] = useState('low');         // low | moderate | high
+  const [riskFactors, setRiskFactors] = useState([]);
+
   const [exerciseType, setExerciseType] = useState('pushup');
   const [reps, setReps] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
@@ -205,6 +239,8 @@ const LiveWorkoutTracker = () => {
   // Auto recognition states
   const [autoDetectEnabled, setAutoDetectEnabled] = useState(false);
   const [detectedExercise, setDetectedExercise] = useState(null);
+
+  const [readiness, setReadiness] = useState(null);
 
   const overallScore = useMemo(() => {
     if (repScores.length === 0) return null;
@@ -289,6 +325,11 @@ const LiveWorkoutTracker = () => {
 
     muscleActivationEmaRef.current = 0;
     setMuscleActivation(0);
+
+    riskEmaRef.current = 0;
+    setInjuryRisk(0);
+    setRiskLevel('low');
+    setRiskFactors([]);
   }, [exerciseType]);
 
   // Fetch MET values once on mount
@@ -296,6 +337,12 @@ const LiveWorkoutTracker = () => {
     fetchMetValues()
       .then((data) => setMetValues({ ...FALLBACK_MET, ...data }))
       .catch(() => setMetValues(FALLBACK_MET));
+  }, []);
+
+  useEffect(() => {
+    fetchReadinessScore()
+      .then(setReadiness)
+      .catch(() => setReadiness(null));
   }, []);
 
   useEffect(() => {
@@ -344,6 +391,50 @@ const LiveWorkoutTracker = () => {
     return (Math.acos(cosAngle) * 180) / Math.PI;
   }, []);
 
+  const computeInjuryRisk = useCallback(
+    (landmarks, type, primaryAngle, alignmentAngle) => {
+      const config = RISK_CONFIG[type];
+      if (!config) return { rawRisk: 0, factors: [] };
+
+      let rawRisk = 0;
+      const factors = [];
+
+      // Bilateral asymmetry — tracked side vs. mirror side
+      const [mA, mB, mC] = config.mirrorPrimary;
+      const mirrorAngle = calculateAngle(landmarks[mA], landmarks[mB], landmarks[mC]);
+      if (mirrorAngle !== null && primaryAngle !== null) {
+        if (Math.abs(primaryAngle - mirrorAngle) > ASYMMETRY_THRESHOLD_DEG) {
+          rawRisk += 25;
+          factors.push({ type: 'asymmetry', message: 'Left/right imbalance — one side is compensating.', severity: 'moderate' });
+        }
+      }
+
+      // Squat-specific: knee valgus
+      if (config.hipKneeAnkle) {
+        const [hA, kA, aA] = config.hipKneeAnkle;
+        if (detectKneeValgus(landmarks[hA], landmarks[kA], landmarks[aA])) {
+          rawRisk += 35;
+          factors.push({ type: 'valgus', message: 'Knee caving inward — push knees out over your toes.', severity: 'high' });
+        }
+      }
+
+      // Spinal load — sagging hips (pushup) or forward lean (squat)
+      if (alignmentAngle !== null && alignmentAngle < config.strainThreshold) {
+        rawRisk += 25;
+        factors.push({ type: 'spinal_load', message: config.strainMessage, severity: 'high' });
+      }
+
+      // Hyperextension at lockout
+      if (primaryAngle !== null && primaryAngle > config.hyperextensionAngle) {
+        rawRisk += 10;
+        factors.push({ type: 'hyperextension', message: "Don't lock the joint out hard at the top.", severity: 'low' });
+      }
+
+      return { rawRisk: Math.min(100, rawRisk), factors };
+    },
+    [calculateAngle]
+  );
+
   const processReps = useCallback(
     (landmarks, canvasWidth, canvasHeight) => {
       const type = exerciseTypeRef.current;
@@ -361,6 +452,23 @@ const LiveWorkoutTracker = () => {
       const rawActivation = computeActivation(primaryAngle, config);
       muscleActivationEmaRef.current = 0.4 * rawActivation + 0.6 * muscleActivationEmaRef.current;
       setMuscleActivation(muscleActivationEmaRef.current);
+
+      if (repStateRef.current === 'down') {
+        const { rawRisk, factors } = computeInjuryRisk(landmarks, type, primaryAngle, alignmentAngle);
+        const combinedRisk = Math.min(100, rawRisk + fatigueScore * 0.3); // fatigue elevates injury risk
+        riskEmaRef.current = RISK_EMA_ALPHA * combinedRisk + (1 - RISK_EMA_ALPHA) * riskEmaRef.current;
+        const smoothed = Math.round(riskEmaRef.current);
+        setInjuryRisk(smoothed);
+        setRiskFactors(factors);
+
+        const level = smoothed >= 60 ? 'high' : smoothed >= 30 ? 'moderate' : 'low';
+        setRiskLevel((prev) => {
+          if (level === 'high' && prev !== 'high') {
+            speak('High injury risk detected — consider reducing intensity or resting.', { priority: true });
+          }
+          return level;
+        });
+      }
 
       let issue = null;
 
@@ -414,7 +522,7 @@ const LiveWorkoutTracker = () => {
         setFeedback(`Now push back up.`);
       }
     },
-    [calculateAngle, speak, registerRepCompletion]
+    [calculateAngle, speak, registerRepCompletion, computeInjuryRisk, fatigueScore]
   );
 
   // Auto Exercise Recognition callback
@@ -621,6 +729,11 @@ const LiveWorkoutTracker = () => {
 
     muscleActivationEmaRef.current = 0;
     setMuscleActivation(0);
+
+    riskEmaRef.current = 0;
+    setInjuryRisk(0);
+    setRiskLevel('low');
+    setRiskFactors([]);
   };
 
   useEffect(() => {
@@ -655,6 +768,30 @@ const LiveWorkoutTracker = () => {
           </button>
         </div>
       </div>
+
+      {readiness && (
+        <div
+          className={`rounded-xl border p-4 mb-6 ${
+            readiness.level === 'high'
+              ? 'bg-green-500/10 border-green-500/30'
+              : readiness.level === 'moderate'
+              ? 'bg-yellow-500/10 border-yellow-500/30'
+              : 'bg-red-500/10 border-red-500/30'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-semibold">Today's Readiness</span>
+            <span
+              className={`text-lg font-bold ${
+                readiness.level === 'high' ? 'text-green-400' : readiness.level === 'moderate' ? 'text-yellow-400' : 'text-red-400'
+              }`}
+            >
+              {readiness.score}/100
+            </span>
+          </div>
+          <p className="text-xs text-gray-400">{readiness.factors[0]}</p>
+        </div>
+      )}
 
       <div className="flex gap-3 mb-4">
         {Object.entries(EXERCISE_CONFIG).map(([key, cfg]) => (
@@ -714,7 +851,7 @@ const LiveWorkoutTracker = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-orange-500">{reps}</div>
           <div className="text-xs text-gray-400 mt-1">Reps</div>
@@ -735,6 +872,9 @@ const LiveWorkoutTracker = () => {
           <div className="text-3xl font-bold text-yellow-400">{liveCalories.toFixed(1)}</div>
           <div className="text-xs text-gray-400 mt-1">Calories</div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
           <div
             className={`text-3xl font-bold ${
@@ -745,7 +885,25 @@ const LiveWorkoutTracker = () => {
           </div>
           <div className="text-xs text-gray-400 mt-1">Fatigue</div>
         </div>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
+          <div
+            className={`text-3xl font-bold ${
+              riskLevel === 'high' ? 'text-red-400' : riskLevel === 'moderate' ? 'text-yellow-400' : 'text-green-400'
+            }`}
+          >
+            {injuryRisk}%
+          </div>
+          <div className="text-xs text-gray-400 mt-1">Injury Risk</div>
+        </div>
       </div>
+
+      {riskFactors.length > 0 && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-6 space-y-1">
+          {riskFactors.map((f) => (
+            <p key={f.type} className="text-xs text-red-300">⚠ {f.message}</p>
+          ))}
+        </div>
+      )}
 
       {lastRepScore !== null && (
         <p className="text-sm text-center text-gray-400 mb-2">Last rep score: {lastRepScore}/100</p>
