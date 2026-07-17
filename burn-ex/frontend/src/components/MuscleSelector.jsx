@@ -63,7 +63,11 @@ function MuscleSelector({ selectedMuscles, onSelect, onBack }) {
       </div>
 
       {/* SVG Muscle Diagram */}
-      <div className="bg-surface rounded-2xl p-6 border border-outline-variant flex items-center justify-center">
+      <div className="rounded-2xl border border-primary/20 bg-[#2b1c1a] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_20px_45px_rgba(0,0,0,0.22)] sm:p-6">
+        <div className="mb-3 flex items-center justify-between px-2">
+          <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Interactive muscle map</span>
+          <span className="text-[10px] text-primary">Hover to preview effort</span>
+        </div>
         <MuscleSvg
           selectedMuscles={selectedMuscles}
           onToggleMuscle={toggleMuscle}
