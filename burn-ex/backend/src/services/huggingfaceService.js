@@ -53,7 +53,7 @@ export const classifyFoodImage = async (imageBase64) => {
 
   const buffer = Buffer.from(base64, 'base64');
 
-  const url = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+  const url = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
 
   const postOnce = () =>
     axios.post(url, buffer, {
