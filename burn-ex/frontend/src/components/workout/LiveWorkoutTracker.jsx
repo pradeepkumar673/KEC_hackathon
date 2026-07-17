@@ -7,8 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchMetValues, saveWorkoutSession } from '../../services/workoutService';
 import { fetchReadinessScore } from '../../services/progressService';
 import MuscleActivationOverlay from './MuscleActivationOverlay';
-import { predictMultiplier, loadCalorieModel } from '../../ml/calorieModel';
-import { predictFormScore, loadFormModel } from '../../ml/formModel';
+import { predictMultiplier } from '../../ml/calorieModel';
+import { predictFormScore } from '../../ml/formModel';
 
 
 // ============================================================
@@ -104,12 +104,14 @@ const RISK_CONFIG = {
   },
   squat: {
     mirrorPrimary: [LANDMARKS.RIGHT_HIP, LANDMARKS.RIGHT_KNEE, LANDMARKS.RIGHT_ANKLE],
+    hipKneeAnkle: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_ANKLE],
     strainThreshold: 130,
     strainMessage: 'Excessive forward lean — keep your chest tall.',
     hyperextensionAngle: 178,
   },
   jumping_jack: {
     mirrorPrimary: [LANDMARKS.RIGHT_HIP, LANDMARKS.RIGHT_KNEE, LANDMARKS.RIGHT_ANKLE],
+    hipKneeAnkle: [LANDMARKS.LEFT_HIP, LANDMARKS.LEFT_KNEE, LANDMARKS.LEFT_ANKLE],
     strainThreshold: 140,
     strainMessage: 'Land softly — protect your knees.',
     hyperextensionAngle: 178,
@@ -230,7 +232,6 @@ const LiveWorkoutTracker = () => {
   const lastSpokenRef = useRef({ text: '', time: 0 });
   const repsRef = useRef(0);
   const formScoresRef = useRef([]);
-  const lastLandmarksRef = useRef(null);
 
   // Fatigue refs
   const repTimestampsRef = useRef([]);
@@ -272,7 +273,6 @@ const LiveWorkoutTracker = () => {
   const [injuryRisk, setInjuryRisk] = useState(0);
   const [riskLevel, setRiskLevel] = useState('low');
   const [riskFactors, setRiskFactors] = useState([]);
-  const [modelsLoading, setModelsLoading] = useState(true);
   const [modelsReady, setModelsReady] = useState(false);
 
   // Computed
@@ -289,18 +289,15 @@ const LiveWorkoutTracker = () => {
   // --- Load ML models on mount ---
   useEffect(() => {
     const loadModels = async () => {
-      setModelsLoading(true);
       try {
         await Promise.all([
-          loadCalorieModel(),
-          loadFormModel()
+          import('../../ml/calorieModel').then(m => m.loadCalorieModel()),
+          import('../../ml/formModel').then(m => m.loadFormModel())
         ]);
         setModelsReady(true);
         console.log('✅ All ML models loaded');
       } catch (e) {
         console.warn('⚠️ Some models failed to load, using fallbacks', e);
-      } finally {
-        setModelsLoading(false);
       }
     };
     loadModels();
@@ -534,9 +531,6 @@ const LiveWorkoutTracker = () => {
         repStateRef.current = 'down';
         setFeedback(`Now push back up.`);
       }
-
-      // Store landmarks for auto-detection
-      lastLandmarksRef.current = landmarks;
     },
     [calculateAngle, speak, registerRepCompletion, computeInjuryRisk, fatigueScore]
   );
@@ -782,7 +776,7 @@ const LiveWorkoutTracker = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Live Workout Tracker</h1>
         <div className="flex items-center space-x-3">
-          {modelsLoading && (
+          {!modelsReady && (
             <span className="text-xs text-gray-400 flex items-center gap-1">
               <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse inline-block"></span>
               Loading AI...
