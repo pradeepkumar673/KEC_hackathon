@@ -235,6 +235,7 @@ const LiveWorkoutTracker = () => {
   const lastSpokenRef = useRef({ text: '', time: 0 });
   const repsRef = useRef(0);
   const formScoresRef = useRef([]);
+  const formIssueRef = useRef(null);
 
   // Fatigue refs
   const repTimestampsRef = useRef([]);
@@ -300,6 +301,7 @@ const LiveWorkoutTracker = () => {
 
   // Sync refs with state
   useEffect(() => { repsRef.current = reps; }, [reps]);
+  useEffect(() => { formIssueRef.current = formIssue; }, [formIssue]);
   useEffect(() => { formScoresRef.current = repScores; }, [repScores]);
   useEffect(() => { groqEnabledRef.current = groqEnabled; }, [groqEnabled]);
   useEffect(() => { injuryRiskRef.current = injuryRisk; }, [injuryRisk]);
@@ -644,22 +646,23 @@ const LiveWorkoutTracker = () => {
       ctx.restore();
 
       // Draw form issue arrow
-      if (formIssue) {
-        drawArrow(ctx, formIssue.x, formIssue.y, formIssue.direction, '#ff5545');
+      const activeFormIssue = formIssueRef.current;
+      if (activeFormIssue) {
+        drawArrow(ctx, activeFormIssue.x, activeFormIssue.y, activeFormIssue.direction, '#ff5545');
         ctx.save();
         ctx.font = 'bold 16px sans-serif';
         ctx.fillStyle = '#ff5545';
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 3;
-        const label = formIssue.message;
-        const labelX = Math.min(Math.max(formIssue.x - 40, 10), canvas.width - 150);
-        const labelY = Math.max(formIssue.y - 30, 20);
+        const label = activeFormIssue.message;
+        const labelX = Math.min(Math.max(activeFormIssue.x - 40, 10), canvas.width - 150);
+        const labelY = Math.max(activeFormIssue.y - 30, 20);
         ctx.strokeText(label, labelX, labelY);
         ctx.fillText(label, labelX, labelY);
         ctx.restore();
       }
     },
-    [processReps, formIssue, runAutoDetection]
+    [processReps, runAutoDetection]
   );
 
   // --- Initialize MediaPipe Pose ---
@@ -868,6 +871,14 @@ const LiveWorkoutTracker = () => {
   }, []);
 
   // --- Render ---
+  const sessionCalories = Number(savedSession?.calories ?? liveCalories ?? 0);
+  const sessionXp = Math.round((reps * 10) + (sessionCalories * 25) + (overallScore ?? 0));
+  const achievement = overallScore >= 80 ? 'Form Finisher' : reps >= 10 ? 'Rep Rally' : 'Momentum Builder';
+  const sessionLevel = Math.max(1, Math.floor(sessionXp / 250) + 1);
+  const levelProgress = sessionXp % 250;
+  const calorieGoal = 10;
+  const calorieProgress = Math.min(100, (sessionCalories / calorieGoal) * 100);
+
   return (
     <div className="fixed inset-0 z-[100] overflow-hidden bg-black text-on-surface">
       {/* Top Header Bar */}
@@ -959,11 +970,32 @@ const LiveWorkoutTracker = () => {
           </button>
           {(savedSession || aiSummary || saveState === 'error') && (
             <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm">
-              <div className="glass-card w-full max-w-lg space-y-4 rounded-2xl p-6 text-left">
+              <div className="glass-card max-h-[82vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl p-6 text-left custom-scrollbar">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-display-lg text-lg font-bold text-on-surface">Session Debrief</h3>
+                  <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Workout complete</p><h3 className="font-display-lg text-xl font-bold text-on-surface">You crushed it!</h3></div>
                   <button onClick={handleReset} className="text-on-surface-variant hover:text-on-surface" aria-label="Close debrief"><span className="material-symbols-outlined">close</span></button>
                 </div>
+                <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-[radial-gradient(circle_at_50%_0%,rgba(255,180,170,0.36),rgba(91,31,28,0.82)_55%,rgba(38,18,17,0.98))] px-5 py-5 text-center shadow-[0_0_30px_rgba(255,85,69,0.18)]">
+                  <span className="material-symbols-outlined mb-1 text-3xl text-primary">local_fire_department</span>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary-fixed">Calories burned</p>
+                  <div className="my-1 font-stats-num text-5xl font-black tracking-tight text-on-surface">{sessionCalories.toFixed(1)}</div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">kcal burned this session</p>
+                  <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-black/20 px-3 py-1 text-xs font-bold text-primary-fixed"><span className="material-symbols-outlined text-sm">bolt</span>+{sessionXp} XP earned</div>
+                  <div className="mt-4 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-left">
+                    <div className="mb-1 flex items-center justify-between text-[9px] font-bold uppercase tracking-wide"><span className="text-on-surface-variant">Level {sessionLevel} progress</span><span className="text-primary-fixed">{levelProgress}/250 XP</span></div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-primary shadow-[0_0_10px_rgba(255,180,170,0.8)]" style={{ width: `${(levelProgress / 250) * 100}%` }} /></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center"><p className="font-stats-num text-2xl font-bold text-primary">{reps}</p><p className="text-[9px] uppercase tracking-wide text-on-surface-variant">Reps</p></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center"><p className="font-stats-num text-xl font-bold text-primary">{formatTime(seconds)}</p><p className="text-[9px] uppercase tracking-wide text-on-surface-variant">Time</p></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center"><p className="font-stats-num text-2xl font-bold text-primary">{overallScore ?? '--'}</p><p className="text-[9px] uppercase tracking-wide text-on-surface-variant">Form</p></div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="mb-1 flex items-center justify-between"><span className="text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Daily burn quest</span><span className="text-[10px] font-bold text-primary">{calorieProgress.toFixed(0)}%</span></div><div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-primary" style={{ width: `${calorieProgress}%` }} /></div><p className="mt-1 text-[9px] text-on-surface-variant">{sessionCalories.toFixed(1)} / {calorieGoal} kcal goal</p></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Recovery check</p><div className="mt-1 flex items-baseline gap-1"><span className={`font-stats-num text-2xl font-bold ${injuryRisk >= 50 ? 'text-red-400' : 'text-green-400'}`}>{injuryRisk}%</span><span className="text-[9px] text-on-surface-variant">risk</span></div><p className="text-[9px] text-on-surface-variant">Fatigue: {fatigueScore}%</p></div>
+                </div>
+                <div className="flex items-center gap-3 rounded-xl border border-amber-400/25 bg-amber-400/10 p-3"><span className="material-symbols-outlined text-2xl text-amber-300">military_tech</span><div><p className="text-xs font-bold text-amber-200">Achievement unlocked: {achievement}</p><p className="text-[10px] text-on-surface-variant">Every completed rep moves your streak forward.</p></div></div>
                 {saveState === 'saved' && savedSession && <p className="rounded-xl border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400">Session saved — {savedSession.calories} kcal logged.</p>}
                 {saveState === 'error' && <p className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm text-primary">Failed to sync this session with the cloud.</p>}
                 {aiSummaryLoading && <p className="text-sm text-on-surface-variant">Generating AI summary…</p>}
@@ -985,10 +1017,12 @@ const LiveWorkoutTracker = () => {
             
             {/* Camera elements */}
             <video
-  ref={videoRef}
-  playsInline
-  style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-/>
+              ref={videoRef}
+              muted
+              playsInline
+              aria-hidden="true"
+              style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+            />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full object-cover" />
             
             {/* SCANLINE animation */}
@@ -1112,6 +1146,32 @@ const LiveWorkoutTracker = () => {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Live activation map: the same pose-derived effort value drives this SVG in real time. */}
+            {isTracking && (
+              <aside className="absolute left-4 top-1/2 z-20 hidden w-48 -translate-y-1/2 rounded-2xl border border-white/15 bg-[#241715]/85 p-3 shadow-2xl backdrop-blur-xl md:block">
+                <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-2">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Muscle targeting</span>
+                  <span className="text-[10px] font-bold text-primary">{Math.round(muscleActivation)}%</span>
+                </div>
+                <div className="muscle-map rounded-xl p-1.5">
+                  <MuscleActivationOverlay
+                    primaryMuscles={EXERCISE_CONFIG[exerciseType]?.primaryMuscles || []}
+                    secondaryMuscles={EXERCISE_CONFIG[exerciseType]?.secondaryMuscles || []}
+                    activation={muscleActivation}
+                  />
+                </div>
+                <div className="mt-2 space-y-1 text-[8px] uppercase tracking-wide">
+                  <p className="text-on-surface-variant">
+                    Primary: <span className="font-bold text-primary">{EXERCISE_CONFIG[exerciseType]?.primaryMuscles?.join(' · ')}</span>
+                  </p>
+                  <p className="text-on-surface-variant">
+                    Support: <span className="font-bold text-amber-300">{EXERCISE_CONFIG[exerciseType]?.secondaryMuscles?.join(' · ')}</span>
+                  </p>
+                  <p className="pt-1 text-[7px] normal-case tracking-normal text-on-surface-variant/70">Red = primary · amber = stabilizer · dark = inactive</p>
+                </div>
+              </aside>
             )}
 
           </div>

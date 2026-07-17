@@ -46,7 +46,9 @@ const MuscleActivationOverlay = ({ primaryMuscles = [], secondaryMuscles = [], a
       if (activation > 0.5) return `${base} fill-amber-500/70 stroke-amber-300`;
       return `${base} fill-amber-600/40 stroke-amber-500/50`;
     }
-    return `${base} fill-gray-700/40 stroke-gray-600/40`;
+    // Keep non-targeted muscles as a very quiet silhouette. They are not part
+    // of the activation calculation and should never read as active targets.
+    return `${base} fill-[#2b2121] stroke-[#5c4644] opacity-45`;
   };
 
   return (
