@@ -10,6 +10,7 @@ import MuscleActivationOverlay from './MuscleActivationOverlay';
 import { predictMultiplier } from '../../ml/calorieModel';
 import { computeFormScore } from '../../ml/formModel';
 import { fetchAiStatus, fetchWorkoutSummary, fetchFormTip } from '../../services/aiService';
+import { useNavigate } from 'react-router-dom';
 
 
 // ============================================================
@@ -217,6 +218,7 @@ const drawArrow = (ctx, x, y, direction, color) => {
 
 const LiveWorkoutTracker = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Refs
   const videoRef = useRef(null);
@@ -867,16 +869,15 @@ const LiveWorkoutTracker = () => {
 
   // --- Render ---
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 text-on-surface">
+    <div className="fixed inset-0 z-[100] overflow-hidden bg-black text-on-surface">
       {/* Top Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-on-surface font-display-lg">
-            Live AI Coach HUD
-          </h1>
-          <p className="text-on-surface-variant text-xs md:text-sm">
-            Interactive real-time posture check and CNS fatigue tracking.
-          </p>
+      <header className="absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-4 border-b border-white/10 bg-black/30 px-6 py-4 backdrop-blur-xl md:px-12">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/dashboard')} className="text-on-surface-variant transition-colors hover:text-primary" aria-label="Exit live tracker">
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <span className="font-display-lg text-xl font-extrabold tracking-tighter text-primary">BURN-EX</span>
+          {isTracking && <span className="hidden rounded-full border border-primary/30 bg-primary/20 px-3 py-1 text-[10px] uppercase tracking-widest text-primary animate-pulse md:inline">Live Training Mode</span>}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {!modelsReady && (
@@ -915,17 +916,17 @@ const LiveWorkoutTracker = () => {
             {voiceEnabled ? '🔊 Voice Feedback' : '🔇 Muted'}
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Errors or alerts */}
       {!user?.weight && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs rounded-xl p-3 mb-6 flex items-center gap-2">
+        <div className="absolute left-1/2 top-20 z-40 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 text-xs text-yellow-300">
           <span className="material-symbols-outlined text-sm">warning</span>
           <span>Your profile is missing weight — calorie estimates will be unavailable. Please update your profile.</span>
         </div>
       )}
       {cameraError && (
-        <div className="bg-primary/10 border border-primary/30 text-primary text-sm rounded-xl p-4 mb-6 flex items-center gap-2">
+        <div className="absolute left-1/2 top-20 z-40 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-4 text-sm text-primary">
           <span className="material-symbols-outlined text-base">error</span>
           <span>{cameraError}</span>
         </div>
@@ -933,41 +934,62 @@ const LiveWorkoutTracker = () => {
 
       {/* Exercise selector (Only visible when not tracking) */}
       {!isTracking && (
-        <div className="glass-card p-6 rounded-2xl mb-8 animate-fade-in">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-surface/80 p-6 text-center backdrop-blur-sm animate-fade-in">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 font-label-bold">
             Select Active Exercise Routine
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {Object.entries(EXERCISE_CONFIG).map(([key, cfg]) => (
               <button
                 key={key}
                 onClick={() => setExerciseType(key)}
-                className={`px-4 py-4 rounded-xl font-bold transition-all text-center flex flex-col items-center justify-center gap-2 border ${
+                className={`rounded-xl border px-5 py-3 text-sm font-bold transition-all ${
                   exerciseType === key 
                     ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(255,180,170,0.15)]' 
                     : 'bg-surface border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-variant'
                 }`}
               >
-                <span className="material-symbols-outlined text-2xl">
-                  {key === 'squat' ? 'directions_run' : key === 'pushup' ? 'fitness_center' : key === 'jumpingjack' ? 'sports_gymnastics' : 'accessibility_new'}
-                </span>
-                <span className="text-sm">{cfg.label}s</span>
+                {cfg.label}
               </button>
             ))}
           </div>
+          <button onClick={handleStart} className="flex items-center gap-3 rounded-full bg-primary px-10 py-4 font-bold text-on-primary shadow-[0_0_25px_rgba(255,180,170,0.5)] transition-all active:scale-95">
+            <span className="material-symbols-outlined text-3xl">play_arrow</span>
+            <span className="text-lg uppercase tracking-tight">Start Session</span>
+          </button>
+          {(savedSession || aiSummary || saveState === 'error') && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm">
+              <div className="glass-card w-full max-w-lg space-y-4 rounded-2xl p-6 text-left">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display-lg text-lg font-bold text-on-surface">Session Debrief</h3>
+                  <button onClick={handleReset} className="text-on-surface-variant hover:text-on-surface" aria-label="Close debrief"><span className="material-symbols-outlined">close</span></button>
+                </div>
+                {saveState === 'saved' && savedSession && <p className="rounded-xl border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400">Session saved — {savedSession.calories} kcal logged.</p>}
+                {saveState === 'error' && <p className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm text-primary">Failed to sync this session with the cloud.</p>}
+                {aiSummaryLoading && <p className="text-sm text-on-surface-variant">Generating AI summary…</p>}
+                {aiSummary && <p className="text-sm leading-relaxed text-on-surface">{aiSummary}</p>}
+                {riskFactors.length > 0 && <div className="space-y-1 border-t border-outline-variant pt-3 text-xs text-on-surface-variant">{riskFactors.map((factor) => <p key={factor.type}>• {factor.message}</p>)}</div>}
+                <button onClick={handleReset} className="w-full rounded-xl bg-primary py-3 font-bold text-on-primary">Start Another Session</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Main HUD Interface Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="absolute inset-0">
         
         {/* Left: Viewport / Camera Card */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="relative w-full rounded-2xl overflow-hidden bg-black border border-outline-variant aspect-video shadow-2xl">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 overflow-hidden bg-black">
             
             {/* Camera elements */}
-            <video ref={videoRef} className="hidden" playsInline />
-            <canvas ref={canvasRef} className="w-full h-full block" />
+            <video
+  ref={videoRef}
+  playsInline
+  style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+/>
+            <canvas ref={canvasRef} className="absolute inset-0 h-full w-full object-cover" />
             
             {/* SCANLINE animation */}
             {isTracking && <div className="scanline"></div>}
@@ -1095,7 +1117,7 @@ const LiveWorkoutTracker = () => {
           </div>
 
           {/* Controls Bar beneath the Viewport */}
-          <div className="glass-card p-4 rounded-xl flex items-center justify-between gap-4">
+          <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 rounded-t-3xl border-t border-white/10 bg-black/40 p-4 pb-6 backdrop-blur-lg md:px-12">
             <div className="flex gap-2">
               {!isTracking ? (
                 <button 
@@ -1139,7 +1161,7 @@ const LiveWorkoutTracker = () => {
           </div>
           
           {/* Risk Factors Log */}
-          {riskFactors.length > 0 && (
+          {false && riskFactors.length > 0 && (
             <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 space-y-2 animate-fade-in">
               <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-sm">warning</span>
@@ -1157,7 +1179,7 @@ const LiveWorkoutTracker = () => {
           )}
 
           {/* Feedback & Last Rep details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="hidden grid-cols-1 gap-4 md:grid-cols-2">
             <div className="glass-card p-4 rounded-xl">
               <span className="text-[10px] font-label-bold text-on-surface-variant uppercase tracking-widest block mb-2">Posture Tracker Feedback</span>
               <p className="text-sm font-semibold text-on-surface min-h-[40px] flex items-center">
@@ -1234,7 +1256,7 @@ const LiveWorkoutTracker = () => {
         </div>
 
         {/* Right: AI Coach Box Sidebar */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="hidden">
           
           <div className="glass-panel p-5 rounded-2xl border border-outline-variant space-y-6">
             
