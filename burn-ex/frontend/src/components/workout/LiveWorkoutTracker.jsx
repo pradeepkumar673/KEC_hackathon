@@ -5,6 +5,7 @@ import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { POSE_CONNECTIONS } from '@mediapipe/pose';
 import { useAuth } from '../../context/AuthContext';
 import { fetchMetValues, saveWorkoutSession } from '../../services/workoutService';
+import MuscleActivationOverlay from './MuscleActivationOverlay';
 
 const LANDMARKS = {
   LEFT_SHOULDER: 11,
@@ -34,6 +35,8 @@ const EXERCISE_CONFIG = {
     alignmentJoint: LANDMARKS.LEFT_HIP,
     depthMsg: 'Go lower',
     alignmentMsg: 'Keep your back straight',
+    primaryMuscles: ['chest', 'triceps', 'shoulders'],
+    secondaryMuscles: ['abdominals'],
   },
   squat: {
     label: 'Squat',
@@ -47,6 +50,8 @@ const EXERCISE_CONFIG = {
     alignmentJoint: LANDMARKS.LEFT_HIP,
     depthMsg: 'Squat deeper',
     alignmentMsg: 'Keep your chest up',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'calves'],
   },
 };
 
@@ -108,6 +113,15 @@ const scoreAlignment = (minAlignment, idealAngle) => {
   return Math.max(0, Math.min(100, Math.round(score)));
 };
 
+// Normalizes wherever the current joint angle sits between "rest" (topAngle)
+// and "peak contraction" (idealBottom) into a 0–1 activation level.
+const computeActivation = (primaryAngle, config) => {
+  const range = config.topAngle - config.idealBottom;
+  if (range <= 0 || primaryAngle == null) return 0;
+  const clamped = Math.min(config.topAngle, Math.max(config.idealBottom, primaryAngle));
+  return Math.round(((config.topAngle - clamped) / range) * 100) / 100;
+};
+
 // Client-side mirror of the backend regression multiplier, so the live
 // counter tracks the same curve the server will use at save time.
 const liveMultiplier = ({ repsPerMinute = 0, avgFormScore = 70 }) => {
@@ -159,6 +173,10 @@ const LiveWorkoutTracker = () => {
   const repDurationsRef = useRef([]);      // rolling window, seconds-per-rep
   const baselineDurationRef = useRef(null);
   const fatigueEmaRef = useRef(0);
+
+  // Muscle activation refs
+  const muscleActivationEmaRef = useRef(0);
+  const [muscleActivation, setMuscleActivation] = useState(0);
 
   // Auto recognition refs
   const poseClassBufferRef = useRef([]);
@@ -268,6 +286,9 @@ const LiveWorkoutTracker = () => {
     fatigueEmaRef.current = 0;
     setFatigueScore(0);
     setFatigueLevel('fresh');
+
+    muscleActivationEmaRef.current = 0;
+    setMuscleActivation(0);
   }, [exerciseType]);
 
   // Fetch MET values once on mount
@@ -336,6 +357,10 @@ const LiveWorkoutTracker = () => {
       const alignmentAngle = calculateAngle(landmarks[aA], landmarks[aB], landmarks[aC]);
 
       setCurrentAngle(Math.round(primaryAngle));
+
+      const rawActivation = computeActivation(primaryAngle, config);
+      muscleActivationEmaRef.current = 0.4 * rawActivation + 0.6 * muscleActivationEmaRef.current;
+      setMuscleActivation(muscleActivationEmaRef.current);
 
       let issue = null;
 
@@ -593,6 +618,9 @@ const LiveWorkoutTracker = () => {
     fatigueEmaRef.current = 0;
     setFatigueScore(0);
     setFatigueLevel('fresh');
+
+    muscleActivationEmaRef.current = 0;
+    setMuscleActivation(0);
   };
 
   useEffect(() => {
@@ -655,14 +683,35 @@ const LiveWorkoutTracker = () => {
         <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg p-3 mb-4">{cameraError}</div>
       )}
 
-      <div className="relative w-full rounded-xl overflow-hidden bg-black border border-gray-700 mb-6">
-        <video ref={videoRef} className="hidden" playsInline />
-        <canvas ref={canvasRef} className="w-full h-auto block" />
-        {!isTracking && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-            <p className="text-gray-300 text-sm">Camera feed will appear here</p>
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        <div className="relative w-full rounded-xl overflow-hidden bg-black border border-gray-700">
+          <video ref={videoRef} className="hidden" playsInline />
+          <canvas ref={canvasRef} className="w-full h-auto block" />
+          {!isTracking && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+              <p className="text-gray-300 text-sm">Camera feed will appear here</p>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4 flex flex-col items-center">
+          <p className="text-xs text-gray-400 mb-2 self-start">
+            {EXERCISE_CONFIG[exerciseType].label} — muscle activation
+          </p>
+          <MuscleActivationOverlay
+            primaryMuscles={EXERCISE_CONFIG[exerciseType].primaryMuscles}
+            secondaryMuscles={EXERCISE_CONFIG[exerciseType].secondaryMuscles}
+            activation={isTracking ? muscleActivation : 0}
+          />
+          <div className="flex gap-4 mt-2 text-xs text-gray-400">
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Primary
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-sm bg-amber-500 inline-block" /> Secondary
+            </span>
           </div>
-        )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
