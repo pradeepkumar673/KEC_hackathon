@@ -95,7 +95,7 @@ const Nutrition = () => {
       <section className="animate-fade-in flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-extrabold text-white">Nutrition Intelligence</h2>
-          <p className="text-gray-400 text-sm">Computer-vision calorie estimates and metabolic tracking</p>
+          <p className="text-gray-400 text-sm">Groq meal advice + HF food vision with MobileNet fallback</p>
         </div>
       </section>
 

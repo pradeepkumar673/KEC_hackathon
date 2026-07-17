@@ -249,6 +249,9 @@ const LiveWorkoutTracker = () => {
   // Injury risk refs
   const riskEmaRef = useRef(0);
   const lastGroqTipRepRef = useRef(0);
+  const groqTipInFlightRef = useRef(false);
+  const groqEnabledRef = useRef(false);
+  const fatigueLevelRef = useRef('fresh');
 
   // --- State ---
   const [exerciseType, setExerciseType] = useState('pushup');
@@ -280,6 +283,8 @@ const LiveWorkoutTracker = () => {
   const [aiSummary, setAiSummary] = useState('');
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const [coachTip, setCoachTip] = useState('');
+  const [coachTipLoading, setCoachTipLoading] = useState(false);
+  const [aiSummaryError, setAiSummaryError] = useState('');
 
   // Computed
   const overallScore = useMemo(() => {
@@ -291,6 +296,8 @@ const LiveWorkoutTracker = () => {
   // Sync refs with state
   useEffect(() => { repsRef.current = reps; }, [reps]);
   useEffect(() => { formScoresRef.current = repScores; }, [repScores]);
+  useEffect(() => { groqEnabledRef.current = groqEnabled; }, [groqEnabled]);
+  useEffect(() => { fatigueLevelRef.current = fatigueLevel; }, [fatigueLevel]);
 
   // --- Load rule-based scoring + AI status on mount ---
   useEffect(() => {
@@ -364,28 +371,32 @@ const LiveWorkoutTracker = () => {
     });
   }, [speak]);
 
-  const requestGroqFormTip = useCallback(
-    async (repNum, repScore, issueMsg) => {
-      if (!groqEnabled) return;
-      if (repNum - lastGroqTipRepRef.current < 3 && repScore >= 65) return;
-      lastGroqTipRepRef.current = repNum;
-      try {
-        const { tip } = await fetchFormTip({
-          exerciseLabel: EXERCISE_CONFIG[exerciseTypeRef.current]?.label,
-          lastRepScore: repScore,
-          formIssue: issueMsg,
-          fatigueLevel,
-        });
-        if (tip) {
+  // Fire-and-forget Groq tip — never blocks MediaPipe pose loop
+  const requestGroqFormTip = useCallback((repNum, repScore, issueMsg) => {
+    if (!groqEnabledRef.current || groqTipInFlightRef.current) return;
+    if (repNum - lastGroqTipRepRef.current < 3 && repScore >= 65) return;
+
+    lastGroqTipRepRef.current = repNum;
+    groqTipInFlightRef.current = true;
+    setCoachTipLoading(true);
+
+    fetchFormTip({
+      exerciseLabel: EXERCISE_CONFIG[exerciseTypeRef.current]?.label,
+      lastRepScore: repScore,
+      formIssue: issueMsg,
+      fatigueLevel: fatigueLevelRef.current,
+    })
+      .then(({ tip, aiPowered }) => {
+        if (tip && aiPowered) {
           setCoachTip(tip);
           speak(tip, { cooldownMs: 8000 });
         }
-      } catch {
-        // Groq optional — local voice cues still work
-      }
-    },
-    [groqEnabled, speak, fatigueLevel]
-  );
+      })
+      .finally(() => {
+        groqTipInFlightRef.current = false;
+        setCoachTipLoading(false);
+      });
+  }, [speak]);
 
   // --- Exercise switch reset ---
   useEffect(() => {

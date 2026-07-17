@@ -9,24 +9,14 @@ const HF_MODEL = process.env.HF_FOOD_MODEL || 'nateraw/food';
 export const isHfConfigured = () => Boolean(process.env.HF_API_TOKEN);
 
 const FOOD_CALORIE_ESTIMATES = {
-  pizza: 285,
-  burger: 450,
-  sushi: 350,
-  ramen: 400,
-  steak: 420,
-  chicken: 220,
-  salad: 180,
-  pasta: 380,
-  sandwich: 320,
-  donut: 260,
-  cake: 350,
-  apple: 95,
-  banana: 105,
-  fries: 320,
-  taco: 280,
-  burrito: 445,
-  ice_cream: 210,
-  default: 250,
+  pizza: 285, burger: 450, cheeseburger: 550, hamburger: 350, sushi: 350,
+  ramen: 400, steak: 420, chicken: 220, fried_chicken: 320, salad: 180,
+  pasta: 380, spaghetti: 380, sandwich: 320, donut: 260, cake: 350,
+  apple: 95, banana: 105, orange: 62, fries: 320, french_fries: 320,
+  taco: 280, burrito: 445, ice_cream: 210, hot_dog: 290, nachos: 350,
+  guacamole: 150, omelette: 280, pancakes: 350, waffles: 310, bread: 80,
+  rice: 200, noodles: 380, soup: 150, salmon: 280, tuna: 220,
+  shrimp: 180, lobster: 250, crab: 200, oysters: 120, default: 250,
 };
 
 const estimateCalories = (label) => {
@@ -52,6 +42,10 @@ export const classifyFoodImage = async (imageBase64) => {
   }
 
   const buffer = Buffer.from(base64, 'base64');
+
+  if (buffer.length < 1000) {
+    throw new Error('Image too small for food classification');
+  }
 
   const url = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
 
