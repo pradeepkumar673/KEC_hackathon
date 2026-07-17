@@ -15,13 +15,13 @@ import { TricepsGroup } from './muscles/TricepsGroup';
 
 const MuscleSvg = ({ selectedMuscles = [], onToggleMuscle }) => {
   const getMuscleClasses = (muscle) => {
-    const base = "transition-all duration-200";
+    const base = "transition-all duration-200 cursor-pointer";
     const isSelected = selectedMuscles.includes(muscle);
-    const hover = "hover:fill-red-400 hover:stroke-red-600";
+    const hover = "hover:fill-primary/50 hover:stroke-primary/80";
     if (isSelected) {
-      return `${base} fill-red-500 stroke-red-700 ${hover}`;
+      return `${base} fill-primary stroke-primary/20 ${hover}`;
     }
-    return `${base} fill-gray-600 stroke-gray-400 ${hover}`;
+    return `${base} fill-surface-container-highest stroke-outline-variant ${hover}`;
   };
 
   return (

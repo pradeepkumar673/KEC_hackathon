@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import MuscleSvg from './MuscleSvg';
-import { CheckIcon, TargetIcon, ChevronRightIcon } from '../utils/icons';
 
-// Quick‑select presets
 const musclePresets = [
   { id: 'push', name: 'Push Day', muscles: ['chest', 'shoulders', 'triceps'] },
   { id: 'pull', name: 'Pull Day', muscles: ['back', 'biceps', 'traps'] },
@@ -23,19 +21,19 @@ function MuscleSelector({ selectedMuscles, onSelect, onBack }) {
   };
 
   return (
-    <div>
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-3">Target Your Muscles</h2>
-        <p className="text-gray-400 max-w-2xl mx-auto">
-          Click on the diagram to select the muscles you want to work.
+    <div className="space-y-8 animate-fade-in">
+      <div className="text-center py-4">
+        <h2 className="text-xl font-bold mb-2 font-display-md text-on-surface">Target Your Muscles</h2>
+        <p className="text-on-surface-variant text-xs max-w-lg mx-auto">
+          Tap on the skeletal map to highlight your targets, or choose a predefined preset.
         </p>
       </div>
 
       {/* Quick Select Presets */}
-      <div className="mb-10">
-        <h3 className="text-lg font-semibold mb-4 flex items-center">
-          <TargetIcon className="w-5 h-5 mr-2 text-red-500" />
-          Quick Select
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 flex items-center gap-2 font-label-bold">
+          <span className="material-symbols-outlined text-sm text-primary">track_changes</span>
+          Quick Selection Presets
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {musclePresets.map(preset => {
@@ -45,17 +43,19 @@ function MuscleSelector({ selectedMuscles, onSelect, onBack }) {
               <button
                 key={preset.id}
                 onClick={() => selectPreset(preset.muscles)}
-                className={`p-3 rounded-lg border text-left transition ${
+                className={`p-4 rounded-xl border text-left transition duration-300 active:scale-95 flex flex-col gap-1 ${
                   isActive
-                    ? 'border-red-500 bg-red-500/10'
-                    : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                    ? 'border-primary bg-primary/10 shadow-[0_0_12px_rgba(255,180,170,0.1)] text-primary font-bold'
+                    : 'border-outline-variant bg-surface hover:border-on-surface-variant'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium">{preset.name}</span>
-                  {isActive && <CheckIcon className="w-4 h-4 text-red-500" />}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-on-surface">{preset.name}</span>
+                  {isActive && (
+                    <span className="material-symbols-outlined text-sm text-primary">check_circle</span>
+                  )}
                 </div>
-                <p className="text-xs text-gray-400">{preset.muscles.length} muscles</p>
+                <p className="text-[10px] text-on-surface-variant">{preset.muscles.length} targeted groups</p>
               </button>
             );
           })}
@@ -63,7 +63,7 @@ function MuscleSelector({ selectedMuscles, onSelect, onBack }) {
       </div>
 
       {/* SVG Muscle Diagram */}
-      <div className="mb-8 bg-gray-800/30 rounded-xl p-4 border border-gray-700">
+      <div className="bg-surface rounded-2xl p-6 border border-outline-variant flex items-center justify-center">
         <MuscleSvg
           selectedMuscles={selectedMuscles}
           onToggleMuscle={toggleMuscle}
@@ -71,13 +71,15 @@ function MuscleSelector({ selectedMuscles, onSelect, onBack }) {
       </div>
 
       {/* Selected Muscles Summary */}
-      <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-700">
+      <div className="glass-card p-5 rounded-2xl border border-outline-variant">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-semibold text-lg">Selected Muscle Groups</h3>
-              <span className="px-2 py-0.5 bg-red-500/20 text-red-300 rounded-full text-xs font-medium">
-                {selectedMuscles.length}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="font-bold text-xs uppercase tracking-widest text-on-surface-variant font-label-bold">
+                Target Groups Checklist
+              </h3>
+              <span className="px-2 py-0.5 bg-primary/15 border border-primary/20 text-primary rounded-full text-[10px] font-bold">
+                {selectedMuscles.length} ACTIVE
               </span>
             </div>
             {selectedMuscles.length > 0 ? (
@@ -85,26 +87,27 @@ function MuscleSelector({ selectedMuscles, onSelect, onBack }) {
                 {selectedMuscles.map(muscle => (
                   <div
                     key={muscle}
-                    className="flex items-center space-x-1 px-3 py-1 bg-gray-700 rounded-full text-sm"
+                    className="flex items-center gap-1.5 px-3 py-1 bg-surface-container-high border border-outline-variant rounded-full text-xs font-semibold text-on-surface uppercase tracking-wider"
                   >
                     <span>{muscle}</span>
                     <button
                       onClick={() => toggleMuscle(muscle)}
-                      className="text-gray-400 hover:text-white"
+                      className="text-on-surface-variant hover:text-primary transition flex items-center"
                     >
-                      ×
+                      <span className="material-symbols-outlined text-xs">close</span>
                     </button>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-400 text-sm">None selected – click on the diagram above.</p>
+              <p className="text-on-surface-variant text-xs font-medium">No target groups selected yet. Tap the skeletal model above.</p>
             )}
           </div>
           <button
             onClick={onBack}
-            className="px-6 py-2 text-gray-400 hover:text-white transition"
+            className="px-4 py-2 border border-outline-variant text-xs text-on-surface-variant hover:text-on-surface hover:border-on-surface-variant transition rounded-lg font-bold font-label-bold flex items-center gap-1"
           >
+            <span className="material-symbols-outlined text-xs">arrow_back</span>
             Back to Equipment
           </button>
         </div>

@@ -21,6 +21,39 @@
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
 }
 
+.glass-panel {
+  background: rgba(22, 22, 22, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent);
+}
+
+.glow-primary {
+  box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+}
+
+.skeleton-pulse {
+  animation: skeletonPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.scanline {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(255, 180, 170, 0.2), transparent);
+  position: absolute;
+  animation: scan 4s linear infinite;
+}
+
+@keyframes scan {
+  from { top: 0%; }
+  to { top: 100%; }
+}
+
 .primary-gradient {
   background: linear-gradient(135deg, #ff5545 0%, #c0000a 100%);
 }

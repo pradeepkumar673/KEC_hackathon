@@ -1,24 +1,14 @@
 import React from 'react';
-import {
-  DumbbellIcon,
-  CheckIcon,
-  TargetIcon,
-  UsersIcon,
-  SparklesIcon,
-  TrophyIcon,
-  ListIcon,
-  FlameIcon
-} from '../utils/icons';
 
 const equipmentData = [
-  { id: 'barbell', name: 'Barbell', icon: <DumbbellIcon className="w-6 h-6" /> },
-  { id: 'dumbbell', name: 'Dumbbells', icon: <DumbbellIcon className="w-6 h-6" /> },
-  { id: 'kettlebell', name: 'Kettlebell', icon: <TrophyIcon className="w-6 h-6" /> },
-  { id: 'body only', name: 'Bodyweight', icon: <UsersIcon className="w-6 h-6" /> },
-  { id: 'cable', name: 'Cable Machine', icon: <ListIcon className="w-6 h-6" /> },
-  { id: 'machine', name: 'Machines', icon: <SparklesIcon className="w-6 h-6" /> },
-  { id: 'bands', name: 'Resistance Bands', icon: <FlameIcon className="w-6 h-6" /> },
-  { id: 'ez curl bar', name: 'EZ Curl Bar', icon: <TargetIcon className="w-6 h-6" /> },
+  { id: 'barbell', name: 'Barbell', icon: 'fitness_center' },
+  { id: 'dumbbell', name: 'Dumbbells', icon: 'sports_gymnastics' },
+  { id: 'kettlebell', name: 'Kettlebell', icon: 'sports_handball' },
+  { id: 'body only', name: 'Bodyweight', icon: 'accessibility_new' },
+  { id: 'cable', name: 'Cable Machine', icon: 'layers' },
+  { id: 'machine', name: 'Machines', icon: 'settings' },
+  { id: 'bands', name: 'Resistance Bands', icon: 'repeat' },
+  { id: 'ez curl bar', name: 'EZ Curl Bar', icon: 'fitness_center' },
 ];
 
 function EquipmentSelector({ selectedEquipment, onSelect }) {
@@ -30,15 +20,15 @@ function EquipmentSelector({ selectedEquipment, onSelect }) {
   };
 
   return (
-    <div>
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-3">Select Your Equipment</h2>
-        <p className="text-gray-400 max-w-2xl mx-auto">
-          Choose the equipment you have access to. We'll find exercises that match.
+    <div className="space-y-8 animate-fade-in">
+      <div className="text-center py-4">
+        <h2 className="text-xl font-bold mb-2 font-display-md text-on-surface">Select Available Equipment</h2>
+        <p className="text-on-surface-variant text-xs max-w-lg mx-auto">
+          Choose the fitness tools you have at your disposal. We will tailor the list to fit what you have.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {equipmentData.map((item) => {
           const isSelected = selectedEquipment.includes(item.id);
           return (
@@ -46,48 +36,50 @@ function EquipmentSelector({ selectedEquipment, onSelect }) {
               key={item.id}
               onClick={() => toggleEquipment(item.id)}
               className={`
-                relative p-6 rounded-xl border transition-all
+                relative p-6 rounded-2xl border transition-all duration-300 active:scale-95 group text-center flex flex-col items-center justify-center gap-3
                 ${isSelected
-                  ? 'border-red-500 bg-red-500/10 shadow-lg shadow-red-500/10'
-                  : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800'
+                  ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(255,180,170,0.15)] text-primary font-bold'
+                  : 'border-outline-variant bg-surface hover:border-on-surface-variant hover:bg-surface-variant'
                 }
               `}
             >
               {isSelected && (
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                  <CheckIcon className="w-3 h-3 text-white" />
+                <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-on-primary shadow-sm">
+                  <span className="material-symbols-outlined text-xs font-black">check</span>
                 </div>
               )}
-              <div className="flex flex-col items-center space-y-3">
-                <div className="text-gray-200">{item.icon}</div>
-                <div>
-                  <h3 className="font-semibold">{item.name}</h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {isSelected ? 'Selected' : 'Click to select'}
-                  </p>
-                </div>
+              <span className={`material-symbols-outlined text-3xl transition-transform duration-300 group-hover:scale-110 ${
+                isSelected ? 'text-primary' : 'text-on-surface-variant'
+              }`}>
+                {item.icon}
+              </span>
+              <div>
+                <h3 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{item.name}</h3>
+                <p className="text-[10px] text-on-surface-variant mt-0.5">
+                  {isSelected ? 'Active' : 'Tap to select'}
+                </p>
               </div>
             </button>
           );
         })}
       </div>
 
-      <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-700">
+      <div className="glass-card p-5 rounded-2xl border border-outline-variant">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <h3 className="font-semibold text-lg">Selected Equipment</h3>
-            <p className="text-gray-400 text-sm">
+            <h3 className="font-bold text-xs uppercase tracking-widest text-on-surface-variant mb-1 font-label-bold">Access Checklist</h3>
+            <p className="text-sm font-semibold text-on-surface">
               {selectedEquipment.length > 0
                 ? selectedEquipment.map(id => equipmentData.find(e => e.id === id)?.name).join(', ')
-                : 'None selected'}
+                : 'No equipment selected (Bodyweight only will be assumed)'}
             </p>
           </div>
           <button
             onClick={() => onSelect([])}
             disabled={selectedEquipment.length === 0}
-            className="px-6 py-2 text-gray-400 hover:text-white transition disabled:opacity-30"
+            className="px-4 py-2 border border-outline-variant text-xs text-on-surface-variant hover:text-primary hover:border-primary/50 transition rounded-lg font-bold disabled:opacity-30 disabled:hover:text-on-surface-variant disabled:hover:border-outline-variant font-label-bold"
           >
-            Clear All
+            Clear Checklist
           </button>
         </div>
       </div>
