@@ -9,7 +9,7 @@ const FAST_MODEL = process.env.GROQ_FAST_MODEL || 'llama-3.1-8b-instant';
 
 export const isGroqConfigured = () => Boolean(process.env.GROQ_API_KEY);
 
-const chat = async (messages, { maxTokens = 512, temperature = 0.6, model = DEFAULT_MODEL } = {}) => {
+const chat = async (messages, { maxTokens = 512, temperature = 0.6, model = DEFAULT_MODEL, timeoutMs = 30000 } = {}) => {
   if (!isGroqConfigured()) {
     throw new Error('GROQ_API_KEY is not configured');
   }
@@ -27,7 +27,7 @@ const chat = async (messages, { maxTokens = 512, temperature = 0.6, model = DEFA
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      timeout: 30000,
+      timeout: timeoutMs,
     }
   );
 
@@ -126,7 +126,7 @@ export const generateFormTip = async (context) => {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      { maxTokens: 60, temperature: 0.4, model: FAST_MODEL }
+      { maxTokens: 60, temperature: 0.4, model: FAST_MODEL, timeoutMs: 8000 }
     );
     return tip.split('\n')[0].trim();
   } catch (err) {

@@ -14,6 +14,7 @@ const Nutrition = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [aiPoweredSuggestions, setAiPoweredSuggestions] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState('');
 
   const bmr = calculateBMR({ weightKg: user?.weight, heightCm: user?.height, age: user?.age, gender: user?.gender });
   const tdee = calculateTDEE(bmr, user?.activityLevel);
@@ -32,11 +33,14 @@ const Nutrition = () => {
   const loadSuggestions = useCallback(async () => {
     try {
       setSuggestionsLoading(true);
+      setSuggestionsError('');
       const data = await fetchSuggestions();
       setSuggestions(data.suggestions ?? []);
       setAiPoweredSuggestions(Boolean(data.aiPowered));
     } catch {
-      // non-critical — suggestions are a bonus panel
+      setSuggestionsError('Could not load AI suggestions. Tap retry below.');
+      setSuggestions([]);
+      setAiPoweredSuggestions(false);
     } finally {
       setSuggestionsLoading(false);
     }
@@ -58,6 +62,7 @@ const Nutrition = () => {
       await refreshAll();
     } catch {
       setError('Could not save that entry — try again.');
+      throw new Error('save failed');
     }
   };
 
@@ -246,8 +251,19 @@ const Nutrition = () => {
             </div>
             {suggestionsLoading ? (
               <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span className="material-symbols-outlined animate-spin text-sm text-yellow-400">sync</span>
-                <span>Calculating meal advice...</span>
+                <span className="w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span>Generating Groq meal advice…</span>
+              </div>
+            ) : suggestionsError ? (
+              <div className="space-y-2">
+                <p className="text-xs text-red-400">{suggestionsError}</p>
+                <button
+                  type="button"
+                  onClick={loadSuggestions}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800"
+                >
+                  Retry suggestions
+                </button>
               </div>
             ) : (
               <div className="space-y-2">

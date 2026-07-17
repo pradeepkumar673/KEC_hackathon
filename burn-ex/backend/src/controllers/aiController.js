@@ -42,11 +42,11 @@ export const analyzeFoodPhoto = asyncHandler(async (req, res) => {
 
   try {
     const predictions = await classifyFoodImage(imageBase64);
-    res.json({ source: 'huggingface', predictions });
+    return res.json({ source: 'huggingface', predictions, fallback: false });
   } catch (err) {
-    console.warn('HF food vision failed:', err.response?.data || err.message);
-    res.status(502).json({
-      message: 'Food vision temporarily unavailable — client fallback will be used',
+    console.warn('HF food vision failed:', err.message);
+    return res.status(200).json({
+      message: err.message || 'Food vision temporarily unavailable',
       fallback: true,
       predictions: [],
     });

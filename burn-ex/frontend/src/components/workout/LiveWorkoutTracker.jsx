@@ -8,7 +8,7 @@ import { fetchMetValues, saveWorkoutSession } from '../../services/workoutServic
 import { fetchReadinessScore } from '../../services/progressService';
 import MuscleActivationOverlay from './MuscleActivationOverlay';
 import { predictMultiplier } from '../../ml/calorieModel';
-import { predictFormScore } from '../../ml/formModel';
+import { computeFormScore } from '../../ml/formModel';
 import { fetchAiStatus, fetchWorkoutSummary, fetchFormTip } from '../../services/aiService';
 
 
@@ -252,6 +252,8 @@ const LiveWorkoutTracker = () => {
   const groqTipInFlightRef = useRef(false);
   const groqEnabledRef = useRef(false);
   const fatigueLevelRef = useRef('fresh');
+  const injuryRiskRef = useRef(0);
+  const riskFactorsRef = useRef([]);
 
   // --- State ---
   const [exerciseType, setExerciseType] = useState('pushup');
@@ -282,9 +284,10 @@ const LiveWorkoutTracker = () => {
   const [groqEnabled, setGroqEnabled] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiSummaryPowered, setAiSummaryPowered] = useState(false);
+  const [aiSummaryError, setAiSummaryError] = useState('');
   const [coachTip, setCoachTip] = useState('');
   const [coachTipLoading, setCoachTipLoading] = useState(false);
-  const [aiSummaryError, setAiSummaryError] = useState('');
 
   // Computed
   const overallScore = useMemo(() => {
@@ -297,6 +300,8 @@ const LiveWorkoutTracker = () => {
   useEffect(() => { repsRef.current = reps; }, [reps]);
   useEffect(() => { formScoresRef.current = repScores; }, [repScores]);
   useEffect(() => { groqEnabledRef.current = groqEnabled; }, [groqEnabled]);
+  useEffect(() => { injuryRiskRef.current = injuryRisk; }, [injuryRisk]);
+  useEffect(() => { riskFactorsRef.current = riskFactors; }, [riskFactors]);
   useEffect(() => { fatigueLevelRef.current = fatigueLevel; }, [fatigueLevel]);
 
   // --- Load rule-based scoring + AI status on mount ---
@@ -387,9 +392,9 @@ const LiveWorkoutTracker = () => {
       fatigueLevel: fatigueLevelRef.current,
     })
       .then(({ tip, aiPowered }) => {
-        if (tip && aiPowered) {
+        if (tip) {
           setCoachTip(tip);
-          speak(tip, { cooldownMs: 8000 });
+          if (aiPowered) speak(tip, { cooldownMs: 8000 });
         }
       })
       .finally(() => {
@@ -477,9 +482,9 @@ const LiveWorkoutTracker = () => {
     [calculateAngle]
   );
 
-  // --- Process reps (core logic) ---
+  // --- Process reps (core logic) — fully synchronous; Groq is fire-and-forget ---
   const processReps = useCallback(
-    async (landmarks, canvasWidth, canvasHeight) => {
+    (landmarks, canvasWidth, canvasHeight) => {
       const type = exerciseTypeRef.current;
       const config = EXERCISE_CONFIG[type];
       if (!config) return;
@@ -501,7 +506,8 @@ const LiveWorkoutTracker = () => {
       // Injury risk (only when descending)
       if (repStateRef.current === 'down') {
         const { rawRisk, factors } = computeInjuryRisk(landmarks, type, primaryAngle, alignmentAngle);
-        const combinedRisk = Math.min(100, rawRisk + fatigueScore * 0.3);
+        const fatigueNow = Math.round(fatigueEmaRef.current);
+        const combinedRisk = Math.min(100, rawRisk + fatigueNow * 0.3);
         riskEmaRef.current = RISK_EMA_ALPHA * combinedRisk + (1 - RISK_EMA_ALPHA) * riskEmaRef.current;
         const smoothed = Math.round(riskEmaRef.current);
         setInjuryRisk(smoothed);
@@ -543,15 +549,7 @@ const LiveWorkoutTracker = () => {
 
           const depthScore = scoreDepth(minAngleRef.current, config.bottomAngle, config.idealBottom);
           const alignScore = scoreAlignment(minAlignmentRef.current, config.alignmentIdeal);
-
-          // Rule-based form score (depth + alignment)
-          let repScore;
-          try {
-            const mlScore = await predictFormScore(landmarks, { depthScore, alignScore });
-            repScore = mlScore !== null ? mlScore : Math.round(depthScore * 0.6 + alignScore * 0.4);
-          } catch {
-            repScore = Math.round(depthScore * 0.6 + alignScore * 0.4);
-          }
+          const repScore = computeFormScore({ depthScore, alignScore });
 
           setRepScores((prev) => [...prev, repScore]);
           setLastRepScore(repScore);
@@ -580,7 +578,7 @@ const LiveWorkoutTracker = () => {
         setFeedback(`Now push back up.`);
       }
     },
-    [calculateAngle, speak, registerRepCompletion, computeInjuryRisk, fatigueScore, requestGroqFormTip]
+    [calculateAngle, speak, registerRepCompletion, computeInjuryRisk, requestGroqFormTip]
   );
 
   // --- Auto detection ---
@@ -732,8 +730,11 @@ const LiveWorkoutTracker = () => {
     setSaveState('idle');
     setSavedSession(null);
     setAiSummary('');
+    setAiSummaryError('');
+    setAiSummaryPowered(false);
     setCoachTip('');
     lastGroqTipRepRef.current = 0;
+    groqTipInFlightRef.current = false;
     if (!videoRef.current || !poseRef.current) return;
 
     try {
@@ -766,40 +767,59 @@ const LiveWorkoutTracker = () => {
     setFormIssue(null);
     setFeedback('Session stopped.');
 
-    if (repsRef.current > 0 && seconds > 0) {
-      setSaveState('saving');
-      setAiSummaryLoading(true);
-      try {
-        const saved = await saveWorkoutSession({
-          exerciseType,
-          reps: repsRef.current,
-          durationSeconds: seconds,
-          formScore: overallScore ?? undefined,
-        });
-        setSavedSession(saved);
-        setSaveState('saved');
-        speak('Session saved successfully!', { priority: true });
+    const sessionReps = repsRef.current;
+    const sessionSeconds = seconds;
+    const sessionForm = overallScore ?? undefined;
+    const sessionFatigue = Math.round(fatigueEmaRef.current);
+    const sessionRisk = injuryRiskRef.current;
+    const sessionRiskFactors = [...riskFactorsRef.current];
 
-        try {
-          const { summary } = await fetchWorkoutSummary({
-            exerciseType,
-            exerciseLabel: EXERCISE_CONFIG[exerciseType]?.label,
-            reps: repsRef.current,
-            durationSeconds: seconds,
-            formScore: overallScore ?? undefined,
-            fatigueScore,
-            injuryRisk,
-            riskFactors,
-          });
-          if (summary) setAiSummary(summary);
-        } catch {
-          setAiSummary('Great session — keep building consistency and focus on form on every rep.');
-        }
-      } catch {
-        setSaveState('error');
-      } finally {
-        setAiSummaryLoading(false);
+    if (sessionReps <= 0 || sessionSeconds <= 0) return;
+
+    setSaveState('saving');
+    setAiSummaryLoading(true);
+    setAiSummary('');
+    setAiSummaryError('');
+
+    const summaryPayload = {
+      exerciseType,
+      exerciseLabel: EXERCISE_CONFIG[exerciseType]?.label,
+      reps: sessionReps,
+      durationSeconds: sessionSeconds,
+      formScore: sessionForm,
+      fatigueScore: sessionFatigue,
+      injuryRisk: sessionRisk,
+      riskFactors: sessionRiskFactors,
+    };
+
+    const summaryPromise = fetchWorkoutSummary(summaryPayload);
+
+    try {
+      const saved = await saveWorkoutSession({
+        exerciseType,
+        reps: sessionReps,
+        durationSeconds: sessionSeconds,
+        formScore: sessionForm,
+      });
+      setSavedSession(saved);
+      setSaveState('saved');
+      speak('Session saved successfully!', { priority: true });
+    } catch {
+      setSaveState('error');
+    }
+
+    try {
+      const { summary, aiPowered, error } = await summaryPromise;
+      if (summary) {
+        setAiSummary(summary);
+        setAiSummaryPowered(Boolean(aiPowered));
       }
+      if (error) setAiSummaryError('AI summary unavailable — showing fallback.');
+    } catch {
+      setAiSummary('Great session — keep building consistency and focus on form on every rep.');
+      setAiSummaryError('Could not reach Groq — offline summary shown.');
+    } finally {
+      setAiSummaryLoading(false);
     }
   };
 
@@ -814,8 +834,11 @@ const LiveWorkoutTracker = () => {
     setSaveState('idle');
     setSavedSession(null);
     setAiSummary('');
+    setAiSummaryError('');
+    setAiSummaryPowered(false);
     setCoachTip('');
     lastGroqTipRepRef.current = 0;
+    groqTipInFlightRef.current = false;
     repStateRef.current = 'up';
     minAngleRef.current = Infinity;
     minAlignmentRef.current = 180;
@@ -1020,9 +1043,15 @@ const LiveWorkoutTracker = () => {
       )}
 
       {/* Feedback */}
+      {coachTipLoading && isTracking && (
+        <div className="flex items-center justify-center gap-2 text-xs text-blue-400 mb-3">
+          <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          AI coach thinking…
+        </div>
+      )}
       {coachTip && (
         <div className="bg-blue-500/10 border border-blue-500/30 text-blue-300 text-sm rounded-lg p-3 mb-4 text-center">
-          💬 AI Coach: {coachTip}
+          💬 AI Coach{groqEnabled ? ' (Groq)' : ''}: {coachTip}
         </div>
       )}
       <p className="text-sm text-gray-400 mb-4 text-center min-h-[20px]">{feedback}</p>
@@ -1037,12 +1066,23 @@ const LiveWorkoutTracker = () => {
         </div>
       )}
       {aiSummaryLoading && (
-        <p className="text-sm text-center text-gray-400 mb-4">Generating AI workout summary...</p>
+        <div className="flex items-center justify-center gap-2 text-sm text-gray-400 mb-4">
+          <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          Generating AI workout summary…
+        </div>
       )}
       {aiSummary && !aiSummaryLoading && (
         <div className="bg-orange-500/10 border border-orange-500/30 text-orange-100 text-sm rounded-lg p-4 mb-4">
-          <p className="text-xs font-semibold text-orange-400 mb-2">Post-workout AI summary</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-orange-400">Post-workout AI summary</p>
+            {aiSummaryPowered && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Groq</span>
+            )}
+          </div>
           <p>{aiSummary}</p>
+          {aiSummaryError && (
+            <p className="text-xs text-yellow-500/80 mt-2">{aiSummaryError}</p>
+          )}
         </div>
       )}
       {saveState === 'error' && (
