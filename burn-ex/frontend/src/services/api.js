@@ -25,8 +25,21 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
-    return Promise.reject(error.response?.data || error.message);
+    if (!error.response) {
+      // network down / offline / timeout
+      return Promise.reject({ message: 'Network error — check your connection.', offline: true });
+    }
+
+    if (error.response.status === 401) {
+      localStorage.removeItem('burnex_token');
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+
+    const message = error.response?.data?.message || error.response?.data?.error || 'Something went wrong.';
+    console.error('API Error:', message);
+    return Promise.reject({ message, status: error.response.status, data: error.response.data });
   }
 );
 

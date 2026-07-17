@@ -1,6 +1,7 @@
 import NutritionLog from '../models/NutritionLog.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import { calculateBMR, calculateTDEE, calculateCalorieGoal } from '../services/nutritionEngine.js';
+import asyncHandler from '../utils/asyncHandler.js';
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
@@ -34,79 +35,60 @@ const caloriesBurnedToday = async (userId, date) => {
 };
 
 // @route GET /api/nutrition/goals (protected)
-export const getGoals = async (req, res) => {
-  try {
-    res.json(buildGoals(req.user));
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to calculate goals', error: error.message });
-  }
-};
+export const getGoals = asyncHandler(async (req, res) => {
+  res.json(buildGoals(req.user));
+});
 
 // @route GET /api/nutrition/today (protected)
-export const getToday = async (req, res) => {
-  try {
-    const log = await getOrCreateTodayLog(req.user);
-    const caloriesConsumed = log.entries.reduce((sum, e) => sum + e.calories, 0);
-    const caloriesBurned = await caloriesBurnedToday(req.user._id, log.date);
+export const getToday = asyncHandler(async (req, res) => {
+  const log = await getOrCreateTodayLog(req.user);
+  const caloriesConsumed = log.entries.reduce((sum, e) => sum + e.calories, 0);
+  const caloriesBurned = await caloriesBurnedToday(req.user._id, log.date);
 
-    res.json({
-      date: log.date,
-      bmr: log.bmr,
-      tdee: log.tdee,
-      calorieGoal: log.calorieGoal,
-      entries: log.entries,
-      caloriesConsumed,
-      caloriesBurned,
-      remaining: log.calorieGoal + caloriesBurned - caloriesConsumed,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to load today's nutrition log", error: error.message });
-  }
-};
+  res.json({
+    date: log.date,
+    bmr: log.bmr,
+    tdee: log.tdee,
+    calorieGoal: log.calorieGoal,
+    entries: log.entries,
+    caloriesConsumed,
+    caloriesBurned,
+    remaining: log.calorieGoal + caloriesBurned - caloriesConsumed,
+  });
+});
 
 // @route POST /api/nutrition/log (protected)  body: { label, calories, confidence?, source? }
-export const logFood = async (req, res) => {
-  try {
-    const { label, calories, confidence, source = 'manual' } = req.body;
-    if (!label || calories === undefined) {
-      return res.status(400).json({ message: 'label and calories are required' });
-    }
-
-    const log = await getOrCreateTodayLog(req.user);
-    log.entries.push({ label, calories, confidence, source, loggedAt: new Date() });
-    await log.save();
-
-    res.status(201).json(log);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to log food entry', error: error.message });
+export const logFood = asyncHandler(async (req, res) => {
+  const { label, calories, confidence, source = 'manual' } = req.body;
+  if (!label || calories === undefined) {
+    res.status(400);
+    throw new Error('label and calories are required');
   }
-};
+
+  const log = await getOrCreateTodayLog(req.user);
+  log.entries.push({ label, calories, confidence, source, loggedAt: new Date() });
+  await log.save();
+
+  res.status(201).json(log);
+});
 
 // @route DELETE /api/nutrition/log/:entryIndex (protected)
-export const deleteFoodEntry = async (req, res) => {
-  try {
-    const log = await getOrCreateTodayLog(req.user);
-    log.entries.splice(parseInt(req.params.entryIndex, 10), 1);
-    await log.save();
-    res.json(log);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to delete entry', error: error.message });
-  }
-};
+export const deleteFoodEntry = asyncHandler(async (req, res) => {
+  const log = await getOrCreateTodayLog(req.user);
+  log.entries.splice(parseInt(req.params.entryIndex, 10), 1);
+  await log.save();
+  res.json(log);
+});
 
 // @route GET /api/nutrition/suggestions (protected)
-export const getSuggestions = async (req, res) => {
-  try {
-    const log = await getOrCreateTodayLog(req.user);
-    const caloriesConsumed = log.entries.reduce((sum, e) => sum + e.calories, 0);
-    const caloriesBurned = await caloriesBurnedToday(req.user._id, log.date);
-    const remaining = log.calorieGoal + caloriesBurned - caloriesConsumed;
+export const getSuggestions = asyncHandler(async (req, res) => {
+  const log = await getOrCreateTodayLog(req.user);
+  const caloriesConsumed = log.entries.reduce((sum, e) => sum + e.calories, 0);
+  const caloriesBurned = await caloriesBurnedToday(req.user._id, log.date);
+  const remaining = log.calorieGoal + caloriesBurned - caloriesConsumed;
 
-    res.json({ remaining, suggestions: buildSuggestions({ remaining, calorieGoal: log.calorieGoal, entries: log.entries, goal: req.user.goal }) });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to build suggestions', error: error.message });
-  }
-};
+  res.json({ remaining, suggestions: buildSuggestions({ remaining, calorieGoal: log.calorieGoal, entries: log.entries, goal: req.user.goal }) });
+});
 
 const buildSuggestions = ({ remaining, calorieGoal, entries, goal }) => {
   const messages = [];
