@@ -33,6 +33,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Cache-first for ML Models (tfhub, mediapipe, unpkg)
+  if (
+    request.url.includes('tfhub.dev') ||
+    request.url.includes('cdn.jsdelivr.net') ||
+    request.url.includes('unpkg.com')
+  ) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
   // Cache-first for static assets (JS/CSS/images/fonts)
   if (['script', 'style', 'image', 'font'].includes(request.destination)) {
     event.respondWith(

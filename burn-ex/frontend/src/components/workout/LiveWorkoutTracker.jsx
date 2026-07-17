@@ -616,6 +616,14 @@ const LiveWorkoutTracker = () => {
     return () => {
       pose.close();
       poseRef.current = null;
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject;
+        stream.getTracks().forEach((t) => t.stop());
+      }
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+        cameraRef.current = null;
+      }
     };
   }, [onResults]);
 
