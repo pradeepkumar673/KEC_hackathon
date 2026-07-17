@@ -52,6 +52,34 @@ const EXERCISE_CONFIG = {
 
 const FALLBACK_MET = { pushup: 8.0, squat: 5.0 };
 
+// ── Fatigue detection config ────────────────────────────────────────────
+const FATIGUE_WINDOW = 5;        // reps averaged for "current pace"
+const BASELINE_REPS = 3;         // first N reps define the "fresh" baseline
+const FATIGUE_EMA_ALPHA = 0.35;  // smoothing factor (higher = reacts faster)
+
+const movingAverage = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+// ── Auto exercise recognition config ────────────────────────────────────
+const RECOGNITION_WINDOW = 15;    // frames to vote over
+const RECOGNITION_AGREEMENT = 10; // votes needed to commit a switch
+
+const classifyPose = (landmarks) => {
+  const shoulder = landmarks[LANDMARKS.LEFT_SHOULDER];
+  const hip = landmarks[LANDMARKS.LEFT_HIP];
+  const wrist = landmarks[LANDMARKS.LEFT_WRIST];
+  if (!shoulder || !hip || !wrist) return null;
+
+  // Torso angle from vertical: ~0° standing, ~90° horizontal (plank)
+  const dx = Math.abs(hip.x - shoulder.x);
+  const dy = Math.abs(hip.y - shoulder.y);
+  const torsoAngleFromVertical = (Math.atan2(dx, dy) * 180) / Math.PI;
+  const wristNearShoulderHeight = Math.abs(wrist.y - shoulder.y) < 0.15;
+
+  if (torsoAngleFromVertical > 55 && wristNearShoulderHeight) return 'pushup';
+  if (torsoAngleFromVertical < 35) return 'squat';
+  return null; // ambiguous frame — don't vote
+};
+
 const formatTime = (totalSeconds) => {
   const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
   const secs = (totalSeconds % 60).toString().padStart(2, '0');
@@ -126,6 +154,15 @@ const LiveWorkoutTracker = () => {
   const repsRef = useRef(0); // mirrors `reps` state for use inside interval closures
   const formScoresRef = useRef([]);
 
+  // Fatigue refs
+  const repTimestampsRef = useRef([]);     // ms timestamp of each completed rep
+  const repDurationsRef = useRef([]);      // rolling window, seconds-per-rep
+  const baselineDurationRef = useRef(null);
+  const fatigueEmaRef = useRef(0);
+
+  // Auto recognition refs
+  const poseClassBufferRef = useRef([]);
+
   const [exerciseType, setExerciseType] = useState('pushup');
   const [reps, setReps] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
@@ -143,6 +180,14 @@ const LiveWorkoutTracker = () => {
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
   const [savedSession, setSavedSession] = useState(null);
 
+  // Fatigue states
+  const [fatigueScore, setFatigueScore] = useState(0);       // 0–100
+  const [fatigueLevel, setFatigueLevel] = useState('fresh'); // fresh | moderate | high
+
+  // Auto recognition states
+  const [autoDetectEnabled, setAutoDetectEnabled] = useState(false);
+  const [detectedExercise, setDetectedExercise] = useState(null);
+
   const overallScore = useMemo(() => {
     if (repScores.length === 0) return null;
     const sum = repScores.reduce((acc, s) => acc + s, 0);
@@ -157,11 +202,72 @@ const LiveWorkoutTracker = () => {
     formScoresRef.current = repScores;
   }, [repScores]);
 
+  // Voice cues helper
+  const speak = useCallback(
+    (text, { priority = false, cooldownMs = 3000 } = {}) => {
+      if (!voiceEnabled || !window.speechSynthesis) return;
+      const now = Date.now();
+      if (!priority && text === lastSpokenRef.current.text && now - lastSpokenRef.current.time < cooldownMs) {
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      window.speechSynthesis.speak(utterance);
+      lastSpokenRef.current = { text, time: now };
+    },
+    [voiceEnabled]
+  );
+
+  // Fatigue detection function
+  const registerRepCompletion = useCallback(() => {
+    const now = Date.now();
+    const timestamps = repTimestampsRef.current;
+    timestamps.push(now);
+    if (timestamps.length < 2) return;
+
+    const durationSec = (now - timestamps[timestamps.length - 2]) / 1000;
+    const durations = repDurationsRef.current;
+    durations.push(durationSec);
+    if (durations.length > FATIGUE_WINDOW) durations.shift();
+
+    // Baseline pace = average of the first few reps, assumed "fresh"
+    if (baselineDurationRef.current === null && timestamps.length - 1 >= BASELINE_REPS) {
+      baselineDurationRef.current = movingAverage(durations.slice(0, BASELINE_REPS));
+    }
+    if (!baselineDurationRef.current) return;
+
+    const currentSMA = movingAverage(durations);
+    const slowdownRatio = currentSMA / baselineDurationRef.current; // >1 = slower than baseline
+    const rawFatigue = Math.max(0, Math.min(100, Math.round((slowdownRatio - 1) * 150)));
+
+    fatigueEmaRef.current = FATIGUE_EMA_ALPHA * rawFatigue + (1 - FATIGUE_EMA_ALPHA) * fatigueEmaRef.current;
+    const smoothed = Math.round(fatigueEmaRef.current);
+    setFatigueScore(smoothed);
+
+    const level = smoothed >= 55 ? 'high' : smoothed >= 25 ? 'moderate' : 'fresh';
+    setFatigueLevel((prev) => {
+      if (level === 'high' && prev !== 'high') {
+        speak("You're slowing down — consider resting soon.", { priority: true });
+      }
+      return level;
+    });
+  }, [speak]);
+
+  // Exercise switch and reset logic
   useEffect(() => {
     exerciseTypeRef.current = exerciseType;
     repStateRef.current = 'up';
     minAngleRef.current = Infinity;
     minAlignmentRef.current = 180;
+
+    // Reset fatigue tracking for the new exercise
+    repTimestampsRef.current = [];
+    repDurationsRef.current = [];
+    baselineDurationRef.current = null;
+    fatigueEmaRef.current = 0;
+    setFatigueScore(0);
+    setFatigueLevel('fresh');
   }, [exerciseType]);
 
   // Fetch MET values once on mount
@@ -217,22 +323,6 @@ const LiveWorkoutTracker = () => {
     return (Math.acos(cosAngle) * 180) / Math.PI;
   }, []);
 
-  const speak = useCallback(
-    (text, { priority = false, cooldownMs = 3000 } = {}) => {
-      if (!voiceEnabled || !window.speechSynthesis) return;
-      const now = Date.now();
-      if (!priority && text === lastSpokenRef.current.text && now - lastSpokenRef.current.time < cooldownMs) {
-        return;
-      }
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05;
-      window.speechSynthesis.speak(utterance);
-      lastSpokenRef.current = { text, time: now };
-    },
-    [voiceEnabled]
-  );
-
   const processReps = useCallback(
     (landmarks, canvasWidth, canvasHeight) => {
       const type = exerciseTypeRef.current;
@@ -282,6 +372,7 @@ const LiveWorkoutTracker = () => {
             speak(`Rep ${next}`, { priority: true });
             return next;
           });
+          registerRepCompletion();
           setFeedback(repScore >= 80 ? 'Great form!' : 'Good rep — check your form tips.');
 
           minAngleRef.current = Infinity;
@@ -298,7 +389,39 @@ const LiveWorkoutTracker = () => {
         setFeedback(`Now push back up.`);
       }
     },
-    [calculateAngle, speak]
+    [calculateAngle, speak, registerRepCompletion]
+  );
+
+  // Auto Exercise Recognition callback
+  const runAutoDetection = useCallback(
+    (landmarks) => {
+      if (!autoDetectEnabled) return;
+      const guess = classifyPose(landmarks);
+      const buffer = poseClassBufferRef.current;
+      buffer.push(guess);
+      if (buffer.length > RECOGNITION_WINDOW) buffer.shift();
+
+      const counts = buffer.reduce((acc, g) => {
+        if (g) acc[g] = (acc[g] || 0) + 1;
+        return acc;
+      }, {});
+      const [topGuess, topCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
+      setDetectedExercise(topGuess || null);
+
+      // Only switch when confident, and between reps so we don't corrupt an in-progress rep
+      if (
+        topGuess &&
+        topCount >= RECOGNITION_AGREEMENT &&
+        topGuess !== exerciseTypeRef.current &&
+        EXERCISE_CONFIG[topGuess] &&
+        repStateRef.current === 'up'
+      ) {
+        setExerciseType(topGuess);
+        speak(`Detected ${EXERCISE_CONFIG[topGuess].label}`, { priority: true });
+        buffer.length = 0;
+      }
+    },
+    [autoDetectEnabled, speak]
   );
 
   useEffect(() => {
@@ -322,6 +445,7 @@ const LiveWorkoutTracker = () => {
       if (results.poseLandmarks) {
         drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#F97316', lineWidth: 3 });
         drawLandmarks(ctx, results.poseLandmarks, { color: '#FFFFFF', fillColor: '#F97316', lineWidth: 1, radius: 3 });
+        runAutoDetection(results.poseLandmarks);
         processReps(results.poseLandmarks, canvas.width, canvas.height);
       }
 
@@ -342,7 +466,7 @@ const LiveWorkoutTracker = () => {
         ctx.restore();
       }
     },
-    [processReps, formIssue]
+    [processReps, formIssue, runAutoDetection]
   );
 
   useEffect(() => {
@@ -461,6 +585,14 @@ const LiveWorkoutTracker = () => {
     minAngleRef.current = Infinity;
     minAlignmentRef.current = 180;
     setFeedback('Counters reset.');
+
+    // Reset fatigue
+    repTimestampsRef.current = [];
+    repDurationsRef.current = [];
+    baselineDurationRef.current = null;
+    fatigueEmaRef.current = 0;
+    setFatigueScore(0);
+    setFatigueLevel('fresh');
   };
 
   useEffect(() => {
@@ -474,14 +606,26 @@ const LiveWorkoutTracker = () => {
     <div className="max-w-3xl mx-auto px-4 py-8 text-white">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Live Workout Tracker</h1>
-        <button
-          onClick={() => setVoiceEnabled((v) => !v)}
-          className={`text-xs px-3 py-1.5 rounded-full border ${
-            voiceEnabled ? 'border-orange-500 text-orange-400' : 'border-gray-600 text-gray-400'
-          }`}
-        >
-          {voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setAutoDetectEnabled((v) => !v)}
+            className={`text-xs px-3 py-1.5 rounded-full border ${
+              autoDetectEnabled ? 'border-blue-500 text-blue-400' : 'border-gray-600 text-gray-400'
+            }`}
+          >
+            {autoDetectEnabled
+              ? `🎯 Auto-Detect On${detectedExercise ? ` (${EXERCISE_CONFIG[detectedExercise]?.label})` : ''}`
+              : '🎯 Auto-Detect Off'}
+          </button>
+          <button
+            onClick={() => setVoiceEnabled((v) => !v)}
+            className={`text-xs px-3 py-1.5 rounded-full border ${
+              voiceEnabled ? 'border-orange-500 text-orange-400' : 'border-gray-600 text-gray-400'
+            }`}
+          >
+            {voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-4">
@@ -521,7 +665,7 @@ const LiveWorkoutTracker = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-orange-500">{reps}</div>
           <div className="text-xs text-gray-400 mt-1">Reps</div>
@@ -541,6 +685,16 @@ const LiveWorkoutTracker = () => {
         <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-yellow-400">{liveCalories.toFixed(1)}</div>
           <div className="text-xs text-gray-400 mt-1">Calories</div>
+        </div>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 text-center">
+          <div
+            className={`text-3xl font-bold ${
+              fatigueLevel === 'high' ? 'text-red-400' : fatigueLevel === 'moderate' ? 'text-yellow-400' : 'text-green-400'
+            }`}
+          >
+            {fatigueScore}%
+          </div>
+          <div className="text-xs text-gray-400 mt-1">Fatigue</div>
         </div>
       </div>
 
