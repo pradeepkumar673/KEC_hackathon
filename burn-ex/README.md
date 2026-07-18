@@ -40,3 +40,4 @@ See **[AI_SETUP.md](./AI_SETUP.md)** for API keys, architecture, and demo checkl
 ## Privacy
 
 Camera and pose processing stay **on-device**. Groq receives text context only. Food images are sent to your backend → HF when server vision is used.
+finally all done
